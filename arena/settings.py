@@ -123,6 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
 LOGIN_URL = '/login/'
 
 # AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
@@ -130,6 +131,13 @@ LOGIN_URL = '/login/'
 #         'django.contrib.auth.backends.ModelBackend',
 #         'app.backends.EmailBackend',
 # ]
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
 
 
 # Internationalization

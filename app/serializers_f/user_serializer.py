@@ -6,13 +6,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email','phone_number']
-        read_only_fields = ['is_teacher','is_admin','is_student','created_at','updated_at']
-
-    def create(self, validated_data):
-        validated_data['is_teacher'] = False
-        validated_data['is_admin'] = False
-        validated_data['is_student'] = False
-        return super().create_user(**validated_data)
+        read_only_fields = ['email_verified', 'is_admin', 'is_staff', 
+                            'is_active','is_owner','created_at','updated_at']
 
     def email_verification(self, user):
         email = getattr(user, "email", None)
@@ -22,7 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
         return re.match(pattern, email) is not None
 
 
-class RegisterSerializer(serializers.ModelSerializer):
+class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:

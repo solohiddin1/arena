@@ -1,9 +1,11 @@
+from django.core.cache import cache
+# from linecache import cache
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.status import HTTP_400_BAD_REQUEST
-from app.serializers_f.user_serializer import UserSerializer
+from app.serializers_f.user_serializer import UserSerializer, UserRegisterSerializer
 from drf_yasg.utils import swagger_auto_schema
 from app.models import User
 from rest_framework import permissions
@@ -13,48 +15,38 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
-
-@permission_classes([IsAdminUser])
-def register_view(request):
-    return render(request,'register.html')
+import random
 
 
-# @swagger_auto_schema(method='post', request_body=StudentSerializer)
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def register(request):
-#     print('user register')
-#     serializer = StudentSerializer(data=request.data)
+class UserRegisterView(APIView):
+    permission_classes = [AllowAny]
 
-#     if serializer.is_valid():
-        
-#         # student.is_student = True
-#         student = serializer.save()
-#         student.save()
-#         user = student.user
+    def post(self, request):
+        print('user is registering ')
+        serializer = UserRegisterSerializer(data=request.data)
 
-#         user.is_student = True
-#         user.save()
-#         print(user.email,'---')
-#         # Send OTP
-#         # otp = random.randint(1000, 9999)
-#         # cache.set(user.email, otp, timeout=300)
+        if serializer.is_valid():
+            user = serializer.save()
+            print(user.email,'---')
+            # Send OTP
+            otp = random.randint(1000, 9999)
+            cache.set(user.email, otp, timeout=300)
 
-#         send_mail(
-#             "You are registered",
-#             f"you can login using your email and password, Your email is {user.email} , your password is 123456",
-#             settings.EMAIL_HOST_USER,
-#             [user.email],
-#             fail_silently=False,
-#         )
-#         return Response({"success": True, "message": "User registered successfully."}, status=201)
-#     print(serializer.errors)
-#     return Response({"Error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+            send_mail(
+                "You are registered",
+                f"Please verify your email \n your otp is --> {otp}",
+                settings.EMAIL_HOST_USER,
+                [user.email],
+                fail_silently=False,
+            )
+            return Response({"success": True, "message": "User registered successfully. Please verify your email."}, status=201)
+        print(serializer.errors)
+        return Response({"Error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
 
 
 
-# class UserCreateView(APIView):
-    @swagger_auto_schema(request_body=UserSerializer)
+class CreateUser(APIView):
+
     def post(self,request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -63,25 +55,18 @@ def register_view(request):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
-@swagger_auto_schema(method="delete", 
-    # manual_parameters = [
-    #     openapi.Parameter("pk", openapi.IN_PATH, type=openapi.TYPE_INTEGER, required=True)
-    #     ] 
-    )
-@api_view(["DELETE"])
-@permission_classes([IsAdminUser])
-def delete_user(request, pk):
-    try:
-        print(pk,'1111')
-        student = Student.objects.get(pk=pk)
-        user = student.user
-        print(user,'---')
-        print(student,'---')
-        student.delete()
-        user.delete()
-        return Response({"success":True, "message":"User deleted successfully!"},status=200
-        )
+class DeleteUser(APIView):
+    permission_classes = [IsAdminUser]
+        
+    def delete(self, request, pk):
+        try:
+            print(pk,'1111')
+            user = User.objects.get(pk=pk)
+            print(user,'---')
+            user.delete()
+            return Response({"success":True, "message":"User deleted successfully!"},status=200
+            )
 
-    except Exception as e:
-        print(str(e))
-        return Response({"success":False, "error":str(e)}, status=400)
+        except Exception as e:
+            print(str(e))
+            return Response({"success":False, "error":str(e)}, status=400)

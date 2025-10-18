@@ -385,14 +385,14 @@ def loginexistinguser(request):
         if user:
             django_login(request._request, user)  # Log the user in
             refresh = RefreshToken.for_user(user)
-            role = 'admin' if userin.is_admin else 'teacher'if userin.is_teacher else 'student' if userin.is_student else 'User' 
+            role = 'admin' if userin.is_admin  else 'User' 
             refresh['role'] = role
             print(role)
             print(refresh)
             return Response({
                 'success': True, 
                 'message': 'user logged in successfully.', 
-                # 'role': role,
+                'role': role,
                 'access': str(refresh.access_token), 
                 'refresh': str(refresh)})
         

@@ -210,10 +210,10 @@ def change_password(request):
     else:
         return Response({"error":"password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
 
-@permission_classes(IsAuthenticated)
-def change_password_page(request):
 
-    return render(request,'change_password.html')
+# @permission_classes(IsAuthenticated)
+# def change_password_page(request):
+#     return render(request,'change_password.html')
 
 
 # #@swagger_auto_schema(method='post', request_body=LoginSerializer)

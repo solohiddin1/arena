@@ -1,17 +1,17 @@
 from django.urls import path
 from app.views.admin import TeacherCrud, admin_panel, teacher_panel
-from app.views.mock_data import MockDataActiveStudents, MockDataFinished, MockDataView, MockTwoCount
+# from app.views.mock_data import MockDataActiveStudents, MockDataFinished, MockDataView, MockTwoCount
 from app.views.user import register_view
 from app.views.auth import (forgot_password_view, logout_view ,change_password_page, forgot_password, 
     home, reset_page, reset_password, student_dashboard, userlogin, userlogin_view, loginexistinguser,
     loginexistinguser_view, verify_user_email_view,
     verify, login, verify_user_email, change_password)
-from app.views.owner import TeacherCreateView, TeacherProfileView
-from app.views.user import (register, 
-     delete_user)
+# from app.views.owner import TeacherCreateView, TeacherProfileView
+# from app.views.user import (register, 
+    #  delete_user)
 
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
-from app.views.mock_data import MockTwoMonth
+# from app.views.mock_data import MockTwoMonth
 
 urlpatterns = [
     # path('user/',UserCreateView.as_view()),

@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from config.config import settings
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-hg086djnqr131)&emgk74n76=)80p&3s@#o_53o3aq)tr@1e%*'
+SECRET_KEY = settings.SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = settings.DEBUG
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = settings.ALLOWED_HOSTS
 
 # CSRF_TRUSTED_ORIGINS = [
 #     "http://127.0.0.1:8000",
@@ -92,6 +94,17 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': settings.DATABASE_ENGINE,
+#         'NAME': settings.DATABASE_NAME,
+#         'USER': settings.DATABASE_USER,
+#         'PASSWORD': settings.DATABASE_PASSWORD,
+#         'HOST': settings.DATABASE_HOST,
+#         'PORT': settings.DATABASE_PORT,
+#     }
+# }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -122,9 +135,9 @@ LOGIN_URL = '/login/'
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = settings.LANGUAGE_CODE
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = settings.TIME_ZONE
 
 USE_I18N = True
 
@@ -146,9 +159,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 AUTH_USER_MODEL = 'app.User'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'sirojiddinovsolohiddin961@gmail.com'
-EMAIL_HOST_PASSWORD = 'tqhe kcdy oemn srwy'
+EMAIL_BACKEND = settings.EMAIL_BACKEND
+EMAIL_HOST = settings.EMAIL_HOST
+EMAIL_PORT = settings.EMAIL_PORT
+EMAIL_USE_TLS = settings.EMAIL_USE_TLS
+EMAIL_HOST_USER = settings.EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD

@@ -45,20 +45,22 @@ class UserRegisterView(APIView):
 
 
 
-class CreateUser(APIView):
+# class CreateUser(APIView):
 
-    def post(self,request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,status=status.HTTP_201_CREATED)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+#     def post(self,request):
+#         serializer = UserSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data,status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteUser(APIView):
+
     permission_classes = [IsAdminUser]
-        
     def delete(self, request, pk):
+        print(request.META.get('HTTP_AUTHORIZATION'))
+
         try:
             print(pk,'1111')
             user = User.objects.get(pk=pk)

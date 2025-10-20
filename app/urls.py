@@ -5,10 +5,8 @@ from app.views.auth import (forgot_password_view, logout_view , forgot_password,
     home, reset_page, reset_password, student_dashboard, userlogin, userlogin_view, loginexistinguser,
     loginexistinguser_view, verify_user_email_view,
     verify, login, verify_user_email, change_password, )
-# from app.views.owner import TeacherCreateView, TeacherProfileView
-# from app.views.user import (register, 
-    #  delete_user)
-from app.views.user import UserRegisterView
+
+from app.views.user import UserRegisterView , DeleteUser
 
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 # from app.views.mock_data import MockTwoMonth
@@ -53,7 +51,7 @@ urlpatterns = [
 
     path('user_register/',UserRegisterView.as_view(),name='user_register'),
 
-    # path('delete_user/<int:pk>/',delete_user, name="delete"),
+    path('delete_user/<int:pk>/',DeleteUser.as_view(), name="delete"),
     
     # token
     path('api/token/',TokenObtainPairView.as_view()),

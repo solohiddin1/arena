@@ -1,10 +1,10 @@
 from django.urls import path
 from app.views.admin import TeacherCrud, admin_panel, teacher_panel
 # from app.views.mock_data import MockDataActiveStudents, MockDataFinished, MockDataView, MockTwoCount
-from app.views.auth import (forgot_password_view, logout_view , forgot_password, 
+from app.views.auth import (ChangePasswordView, LogoutApiView , ForgotPasswordView,
     home, reset_page, reset_password, student_dashboard, userlogin, userlogin_view, loginexistinguser,
     loginexistinguser_view, verify_user_email_view,
-    verify, login, verify_user_email, change_password, )
+    verify, login, VerifyOtpView, )
 
 from app.views.user import UserRegisterView , DeleteUser
 
@@ -30,34 +30,32 @@ urlpatterns = [
 
 
     # # log out0
-    path('api/logout/',logout_view,name='logout'),
+    path('logout/',LogoutApiView.as_view(),name='logout'),
 
 
     # change password
     # path('change_password_page/',change_password_page,name='change_password_page'),
-    path('api/change_password/',change_password,name='change_password'),
+    path('change_password/',ChangePasswordView.as_view(),name='change_password'),
     
     # forgot password
-    path('forgot_password/',forgot_password,name='forgot_password'),
-    path('forgot_password/view/',forgot_password_view,name='forgot_password_view'),
+    path('forgot_password/',ForgotPasswordView.as_view(),name='forgot_password'),
     
     path('reset-password/<uidb64>/<token>/',reset_password, name='reset_password'),
-    path('api/reset-password/<uiid64>/<token>/',reset_page, name='reset_page'),
+
+    # path('reset-password/<uiid64>/<token>/',reset_page, name='reset_page'),
 
 
     # auth
-    path('verify_user_otp/',verify_user_email,name='verify_user_otp'),
-    # path('verify_user_otp/view',verify_user_email_view,name='verify_user_otp_view'),
+    path('verify_otp/',VerifyOtpView.as_view(),name='verify_user_otp'),
 
     path('user_register/',UserRegisterView.as_view(),name='user_register'),
 
     path('delete_user/<int:pk>/',DeleteUser.as_view(), name="delete"),
     
     # token
-    path('api/token/',TokenObtainPairView.as_view()),
-    path('api/token/refresh/',TokenRefreshView.as_view()),
+    path('token/',TokenObtainPairView.as_view()),
+    path('token/refresh/',TokenRefreshView.as_view()),
 
-    path('',home, name='home'),
+    # path('',home, name='home'),
 
-    # path('register/', register, name='register'),
 ]

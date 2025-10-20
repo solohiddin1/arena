@@ -118,87 +118,85 @@ def userlogin(request):
 def verify_user_email_view(request):
     return render(request,'verify_otp.html')
 
-#@swagger_auto_schema(method='post', request_body=SendEmail)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def verify_user_email(request):
-    serializer = SendEmail(data=request.data)
-    serializer.is_valid(raise_exception=True)
 
-    email = serializer.validated_data['email']
-    otp = request.data.get('otp')
-
-    cached_otp = cache.get(email)
-    print(cached_otp)
-    print('user is being verified')
-    if cached_otp and str(cached_otp) == str(otp):
-        print("email cache")
-        cache.delete(email)
-
-        user = User.objects.filter(email=email).first()
-        if user:
-            user.email_verified = True
-            user.save()
-            refresh = RefreshToken.for_user(user)
-            return Response({'success': True, 'message':'email verifikatsiyadan otdi', 'access': str(refresh.access_token), 'refresh': str(refresh)})
-
-        return Response({'success': False, 'message': 'Invalid user.'}, status=400)
-
-    return Response({'success': False, 'message': 'Invalid or expired OTP.'}, status=400)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def logout_view(request):
-    # Expect refresh token in body and blacklist it
-    try:
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
-            return Response({"success": False, "error": "Refresh token required"}, status=status.HTTP_400_BAD_REQUEST)
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-        return Response({"success": True, "message": "Logged out successfully"})
-    except Exception as exc:
-        return Response({"success": False, "error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-#@swagger_auto_schema(method='post', request_body=ChangePasswordSerializer)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def change_password(request):
-    print('111111')
-
-    serializer = ChangePasswordSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    email = serializer.validated_data['email']
-    old_password = serializer.validated_data['old_password']
-    new_password = serializer.validated_data['new_password']
-    confirm_password = serializer.validated_data['confirm_password']
-    print(new_password)
-    print('user changing password')
-
-    try:
-        user1 = User.objects.get(email=email)
+class VerifyOtpView(APIView):
     
-    except Exception as e:
-        print(e)
-        return Response({"error":str(e)})
-    print(user1)
-    if old_password == new_password:
-        return Response({"message":"please enter new password"},status=status.HTTP_400_BAD_REQUEST)
-    if new_password != confirm_password:
-        return Response({"message":"new password should match to confirm password!"},status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        serializer = SendEmail(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-    user = authenticate(request._request,email=email,password=old_password)
-    print(user)
-    if user is None:
-        return Response({"error":"Password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
-    if user:
-        print('user here!')
-        if not user1.email_verified:
-            return Response({'success': False, 'message': 'email not verified'}, status=HTTP_400_BAD_REQUEST)
+        email = serializer.validated_data['email']
+        otp = request.data.get('otp')
+
+        cached_otp = cache.get(email)
+        print(cached_otp)
+        print('user is being verified')
+        if cached_otp and str(cached_otp) == str(otp):
+            print("email cache")
+            cache.delete(email)
+
+            user = User.objects.filter(email=email).first()
+            if user:
+                user.email_verified = True
+                user.is_active = True
+                user.save()
+                refresh = RefreshToken.for_user(user)
+                return Response({'success': True, 'message':'email is verified', 'access': str(refresh.access_token), 'refresh': str(refresh)})
+
+            return Response({'success': False, 'message': 'Invalid user.'}, status=400)
+
+        return Response({'success': False, 'message': 'Invalid or expired OTP.'}, status=400)
+
+
+class LogoutApiView(APIView):
+
+    def post(self, request):
+        # Expect refresh token in body and blacklist it
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"success": False, "error": "Refresh token required"}, status=status.HTTP_400_BAD_REQUEST)
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"success": True, "message": "Logged out successfully"})
+        except Exception as exc:
+            return Response({"success": False, "error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+            
+class ChangePasswordView(APIView):
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+        confirm_password = serializer.validated_data['confirm_password']
+        print(new_password)
+        print('user changing password')
+
+        try:
+            user1 = User.objects.get(email=email)
         
-        print(f"user { user}")
-        
+        except Exception as e:
+            print(e)
+            return Response({"error":str(e)})
+        print(user1)
+        if old_password == new_password:
+            return Response({"message":"please enter new password"},status=status.HTTP_400_BAD_REQUEST)
+        if new_password != confirm_password:
+            return Response({"message":"new password should match to confirm password!"},status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(request._request,email=email,password=old_password)
+        print(user)
+        if user is None:
+            return Response({"error":"Password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
         if user:
+            print('user here!')
+            if not user1.email_verified:
+                return Response({'success': False, 'message': 'email not verified'}, status=HTTP_400_BAD_REQUEST)
+            
+            print(f"user { user}")
+            
             user.set_password(new_password)
             user.is_active = True
             user.save()
@@ -206,43 +204,40 @@ def change_password(request):
             refresh = RefreshToken.for_user(user)
             return Response({'success': True, 'message': 'Password changed successfully.', 'access': str(refresh.access_token), 'refresh': str(refresh)})
 
-        return Response({"success":False, "errors" : serializer.errors},status=400)
-    else:
-        return Response({"error":"password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"success":False, "errors" : serializer.errors},status=400)
+        else:
+            return Response({"error":"password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
 
 
 # @permission_classes(IsAuthenticated)
 # def change_password_page(request):
 #     return render(request,'change_password.html')
 
-
-# #@swagger_auto_schema(method='post', request_body=LoginSerializer)
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def forgot_password(request):
-    serializer = LoginSerializer(data=request.data)
-    
-    print(request.data)
-    if serializer.is_valid():
-        email = serializer.validated_data['email']
-        try:
-            user = User.objects.get(email=serializer.validated_data['email'])
-        except Exception as e:
-            return Response({"error":str(e)})
-        if user:
-            otp = random.randint(1000,9999)
-            cache.set(email,otp,timeout=300)
-            print("otp sent")
-            send_mail(
-                 "Your code sent",
-                    f"Your code is {otp}. It is valid for 5 minutes.",
-                    settings.EMAIL_HOST_USER,
-                    [email],
-                    fail_silently=False,
-                    )
-            return Response({"message":"please verify your email, we sent code to your email"}) 
-        return Response({"error":"User not found"})
-    return Response({"error":serializer.errors})
+class ForgotPasswordView(APIView):
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        
+        print(request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=serializer.validated_data['email'])
+            except Exception as e:
+                return Response({"error":str(e)})
+            if user:
+                otp = random.randint(1000,9999)
+                cache.set(email,otp,timeout=300)
+                print("otp sent")
+                send_mail(
+                    "Your code sent",
+                        f"Your code is {otp}. It is valid for 5 minutes.",
+                        settings.EMAIL_HOST_USER,
+                        [email],
+                        fail_silently=False,
+                        )
+                return Response({"message":"please verify your email, we sent code to your email"}) 
+            return Response({"error":"User not found"})
+        return Response({"error":serializer.errors})
 
 
 

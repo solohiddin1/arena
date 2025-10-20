@@ -57,7 +57,7 @@ class UserRegisterView(APIView):
 
 class DeleteUser(APIView):
 
-    permission_classes = [IsAdminUser]
+    # permission_classes = [IsAdminUser]
     def delete(self, request, pk):
         print(request.META.get('HTTP_AUTHORIZATION'))
 

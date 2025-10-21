@@ -4,5 +4,5 @@ from app.models import Arena
 class ArenaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Arena
-        fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['name', 'location', 'image', 'owner', 'cost', 'open_time', 'close_time', 'rating', 'comments']
+        read_only_fields = ['id','created_at', 'updated_at']

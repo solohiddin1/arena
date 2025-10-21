@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.status import HTTP_400_BAD_REQUEST
-from app.serializers_f.user_serializer import UserSerializer, UserRegisterSerializer
+from app.serializers_f.user_serializer import UserSerializer, UserRegisterSerializer, GetAllUsersSerializer
 from drf_yasg.utils import swagger_auto_schema
 from app.models import User
 from rest_framework import permissions
@@ -16,6 +16,15 @@ from django.core.mail import send_mail
 from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 import random
+
+
+class GetAllUsers(APIView):
+    # permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        users = User.objects.all()
+        serializer = GetAllUsersSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserRegisterView(APIView):
@@ -45,14 +54,21 @@ class UserRegisterView(APIView):
 
 
 
-# class CreateUser(APIView):
+class UpdateUserView(APIView):
 
-#     def post(self,request):
-#         serializer = UserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data,status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    def put(self,requst, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"message":"User does not exist"})
+        except Exception as e:
+            return Response({"error":str(e)})
+        data = requst.data
+        serializer = UserSerializer(instance=user, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message":"user is updated"},status=status.HTTP_200_OK)
+        return Response({"success":False,"error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)        
 
 
 class DeleteUser(APIView):

@@ -31,10 +31,18 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             password=validated_data["password"],
         )
     
+class GetAllUsersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # fields = "__all__"
+        fields = ['id','email','phone_number','email_verified', 'is_admin', 'is_staff', 'is_active','is_owner']
+        # write_only_fields = ['password'] 
+
 
 class LoginUserSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+
 
 class ChangePasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()

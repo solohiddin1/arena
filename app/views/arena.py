@@ -1,27 +1,28 @@
-from rest_framework import ApiView, statuss
+from rest_framework.decorators import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated , AllowAny
 from app.models import Arena
 from app.serializers_f.arena_serializer import ArenaSerializer
 from rest_framework import status
 
 
-class ArenaCreateView(ApiView):
-    permission_classes = [IsAuthenticated]
+class ArenaCreateView(APIView):
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        if request.user.is_authenticated:
+        # if request.user.is_authenticated:
             serializer = ArenaSerializer(data=request.data)
             if serializer.is_valid():
                 arena = serializer.save()
                 return Response(ArenaSerializer(arena).data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        # else:
+        #     return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-class ArenaListView(ApiView):
+class ArenaListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):

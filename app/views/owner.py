@@ -33,11 +33,16 @@ class OwnerRegisterView(APIView):
         try:
             print(data.get('user'))
             user = User.objects.get(id=data.get('user'))
+            if user.is_owner == True:
+                return Response({"error":"User is already an owner"},status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = OwnerSerializer(data=data)
         if serializer.is_valid():
+            user.is_owner = True
+            user.save()
             serializer.save(user=user)
+
             return Response(serializer.data)
         return Response({"error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)

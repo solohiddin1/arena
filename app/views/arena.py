@@ -13,13 +13,14 @@ class ArenaCreateView(APIView):
 
     def post(self, request):
         # if request.user.is_authenticated:
-            serializer = ArenaSerializer(data=request.data)
-            if serializer.is_valid():
-                arena = serializer.save()
-                return Response(ArenaSerializer(arena).data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        # else:
-        #     return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        print('creating arena', request.data)
+        serializer = ArenaSerializer(data=request.data)
+        if serializer.is_valid():
+            arena = serializer.save()
+            return Response(ArenaSerializer(arena).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # else:
+    #     return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class ArenaListView(APIView):

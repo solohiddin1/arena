@@ -17,6 +17,8 @@ class ArenaCreateView(APIView):
         serializer = ArenaSerializer(data=request.data)
         if serializer.is_valid():
             arena = serializer.save()
+            arena.owner.arena_count += 1
+            arena.owner.save()
             return Response(ArenaSerializer(arena).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     # else:

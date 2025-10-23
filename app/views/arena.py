@@ -6,15 +6,23 @@ from rest_framework.permissions import IsAuthenticated , AllowAny
 from app.models import Arena
 from app.serializers_f.arena_serializer import ArenaSerializer
 from rest_framework import status
+from app.models.owner import Owner
 
 
 class ArenaCreateView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        data = request.data
         print('creating arena', request.data)
-        owner = request.user
+        owner = request.data.owner
+        try:
+            owner_user = Owner.object.get(pk=owner)
+        except Owner.DoesNotExist:
+            return Response({"error":"User does not exist"},status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_400_BAD_REQUEST)
+        if owner_user.arena_count > 1:
+            return Response({"limit":"adding arena is limited!, please buy premium"})
         serializer = ArenaSerializer(data=request.data)
         if serializer.is_valid():
             arena = serializer.save()

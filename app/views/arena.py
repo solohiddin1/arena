@@ -12,8 +12,9 @@ class ArenaCreateView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # if request.user.is_authenticated:
+        data = request.data
         print('creating arena', request.data)
+        owner = request.user
         serializer = ArenaSerializer(data=request.data)
         if serializer.is_valid():
             arena = serializer.save()
@@ -24,6 +25,15 @@ class ArenaCreateView(APIView):
     # else:
     #     return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+# {
+# "name":"arena2",
+# "location":"name",
+# "owner":2,
+# "cost":"1020",
+# "open_time":"10:10",
+# "close_time":"20:20"
+# }
 
 class ArenaListView(APIView):
     permission_classes = [IsAuthenticated]

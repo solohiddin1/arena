@@ -22,7 +22,7 @@ class CustomUserManager(BaseUserManager):
         # phone_number = self.normalize_phone_number(phone_number)
         user = self.model(phone_number=phone_number, email=email, **extra_fields)
         
-        user.set_password('123456')
+        user.set_password(password or '123456')
         user.save(using=self._db)
         return user
 

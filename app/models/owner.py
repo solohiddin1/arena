@@ -8,4 +8,4 @@ class Owner(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.user.username if self.user.username else self.user.email
+        return self.user.name if self.user.name else self.user.email

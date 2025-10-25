@@ -43,6 +43,7 @@ class ArenaCreateView(APIView):
 # "close_time":"20:20"
 # }
 
+
 class ArenaListView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -1,0 +1,7 @@
+2025-11-02 21:46:36 INFO     [manage:root] Logger initialized for process 'manage' (PID: 47329)
+2025-11-02 21:46:36 INFO     [manage:root] Logger initialized for process 'manage' (PID: 47329)
+2025-11-02 21:46:38 WARNING  [manage:django.request] Not Found: /
+2025-11-02 21:46:38 WARNING  [manage:django.request] Not Found: /favicon.ico
+2025-11-02 21:46:43 WARNING  [manage:django.request] Not Found: /api/
+2025-11-02 21:46:47 WARNING  [manage:django.request] Not Found: /api/owner
+2025-11-02 21:46:52 WARNING  [manage:django.request] Method Not Allowed: /api/owner_register/

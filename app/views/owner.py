@@ -6,7 +6,9 @@ from app.models.owner import Owner
 from app.models.user import User
 from rest_framework.decorators import permission_classes
 from app.serializers_f.owner_serializer import OwnerSerializer
+from log.log import setup_logger
 
+logger = setup_logger()
 
 @permission_classes([IsAuthenticated])
 class OwnerProfileView(APIView):
@@ -23,7 +25,7 @@ class OwnerProfileView(APIView):
         data = serializer.data.copy()
         data['email'] = owner.user.email
         data['phone_number'] = owner.user.phone_number
-        print(data)
+        logger.info(data)
         return Response(data,status=status.HTTP_200_OK)
 
 class OwnerRegisterView(APIView):

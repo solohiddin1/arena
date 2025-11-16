@@ -40,19 +40,46 @@ ALLOWED_HOSTS = settings.ALLOWED_HOSTS
 
 # Application definition
 
-INSTALLED_APPS = [
+# INSTALLED_APPS = [
+#     'apps.users',
+#     'apps.app',
+#     'apps.posts',
+
+# ]
+# INSTALLED_APPS += [
+#     'django.contrib.admin',
+#     'django.contrib.auth',
+#     'django.contrib.contenttypes',
+#     'django.contrib.sessions',
+#     'django.contrib.messages',
+#     'django.contrib.staticfiles',
+    
+# ]
+
+
+BASE_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app',
+]
+
+APPS = [
+    'apps.users',
+    'apps.app',
+    'apps.posts',
+]
+LIBS = [
+    'drf_yasg',
     'rest_framework',
     'rest_framework.authtoken',
-    'drf_yasg',
     'rest_framework_simplejwt.token_blacklist',
 ]
+
+INSTALLED_APPS = BASE_APPS + APPS + LIBS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -165,7 +192,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-AUTH_USER_MODEL = 'app.User'
+AUTH_USER_MODEL = 'users.User'
+# AUTH_USER_MODEL = 'apps.users.User'
 
 EMAIL_BACKEND = settings.EMAIL_BACKEND
 EMAIL_HOST = settings.EMAIL_HOST

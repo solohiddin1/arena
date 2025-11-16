@@ -3,9 +3,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.status import HTTP_400_BAD_REQUEST
-from app.serializers_f.user_serializer import UserSerializer
-from app.models import User
-from rest_framework import permissions
+# from apps.serializers_f.user_serializer import UserSerializer
+# from apps.models import User
+# from rest_framework import permissions
 from rest_framework.decorators import api_view, APIView, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -17,15 +17,20 @@ from django.conf import settings
 import random
 from django.core.cache import cache
 # from drf_yasg.utils import swagger_auto_schema
-from app.serializers_f.email_serializers import SendEmail, LoginSerializer
-from app.serializers_f.user_serializer import LoginUserSerializer, ChangePasswordSerializer
-# from app.serializers_f.student_serizlizer import StudentSerializer
+# from app.serializers_f.email_serializers import SendEmail, LoginSerializer
+# from app.serializers_f.user_serializer import LoginUserSerializer, ChangePasswordSerializer
+from rest_framework import generics
 
+# from apps.users.serializers import LoginSerializer, SendEmail, LoginUserSerializer, ChangePasswordSerializer
+from apps.users.models import User
+from apps.users.serializers import LoginSerializer
 
 # #@swagger_auto_schema(method='post', request_body=LoginSerializer)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def login(request):
+class LoginApiView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
+
+    def login(self, request):
         serializer = LoginSerializer(data=request.data)
         email = request.data.get("email")
         # password = request.data.get("password")
@@ -77,49 +82,50 @@ def userlogin_view(request):
 
 
 #@swagger_auto_schema(method='post', request_body=LoginUserSerializer)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def userlogin(request):
-    # Handle both JSON and form data
-    if request.content_type == 'application/json':
-        data = request.data
-    else:
-        data = {
-            'email': request.POST.get('email'),
-            'password': request.POST.get('password')
-        }
+class UserLoginView(generics.RetrieveAPIView):
+    permission_classes=[AllowAny]
+    serializer_class=LoginUserSerializer
     
-    serializer = LoginUserSerializer(data=data)
-    print('user here')
-    if serializer.is_valid():
-        print('user here2 ---')
-        email = serializer.validated_data.get("email", "").strip().lower()
-        password = serializer.validated_data.get("password", "").strip()
-        print(email,password,'email password ---')
-        print(f"[{email}], [{password}]")
-        user = authenticate(request, email=email, password=password)
-        print(user)
-        if user:
-            otp = random.randint(1000, 9999)
-            cache.set(email,otp,timeout=300)
-            print("start email")
-            send_mail(
-                 "Your code sent",
-                    f"Your code is {otp}. It is valid for 5 minutes.",
-                    settings.EMAIL_HOST_USER,
-                    [email],
-                    fail_silently=False,
-            )
-            # token, created = Token.objects.get_or_create(user=user)
-            return Response({'success': True, 'message': 'OTP sent to email.'},status=status.HTTP_200_OK)
-        return Response({'success': False, 'message': 'Invalid credentials.'}, status=400)
-    return Response(serializer.errors, status=400)
+    def post(self, request):
+        # Handle both JSON and form data
+        if request.content_type == 'application/json':
+            data = request.data
+        else:
+            data = {
+                'email': request.POST.get('email'),
+                'password': request.POST.get('password')
+            }
+        
+        serializer = LoginUserSerializer(data=data)
+        print('user here')
+        if serializer.is_valid():
+            print('user here2 ---')
+            email = serializer.validated_data.get("email", "").strip().lower()
+            password = serializer.validated_data.get("password", "").strip()
+            print(email,password,'email password ---')
+            print(f"[{email}], [{password}]")
+            user = authenticate(request, email=email, password=password)
+            print(user)
+            if user:
+                otp = random.randint(1000, 9999)
+                cache.set(email,otp,timeout=300)
+                print("start email")
+                send_mail(
+                    "Your code sent",
+                        f"Your code is {otp}. It is valid for 5 minutes.",
+                        settings.EMAIL_HOST_USER,
+                        [email],
+                        fail_silently=False,
+                )
+                # token, created = Token.objects.get_or_create(user=user)
+                return Response({'success': True, 'message': 'OTP sent to email.'},status=status.HTTP_200_OK)
+            return Response({'success': False, 'message': 'Invalid credentials.'}, status=400)
+        return Response(serializer.errors, status=400)
 
-def verify_user_email_view(request):
-    return render(request,'verify_otp.html')
 
-
-class VerifyOtpView(APIView):
+class VerifyOtpView(generics.RetrieveAPIView):
+    serializer_class = SendEmail
+    permission_classes = [AllowAny]
     
     def post(self, request):
         serializer = SendEmail(data=request.data)
@@ -208,10 +214,6 @@ class ChangePasswordView(APIView):
         else:
             return Response({"error":"password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
 
-
-# @permission_classes(IsAuthenticated)
-# def change_password_page(request):
-#     return render(request,'change_password.html')
 
 class ForgotPasswordView(APIView):
     def post(self, request):
@@ -393,3 +395,93 @@ def loginexistinguser(request):
         
         return Response({'success': False, 'message': 'Invalid credentials.'}, status=400)
     return Response(serializer.errors, status=400)
+
+
+from django.core.cache import cache
+# from linecache import cache
+from django.shortcuts import render
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework.status import HTTP_400_BAD_REQUEST
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import permissions
+from rest_framework.decorators import api_view, APIView, permission_classes
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from django.core.mail import send_mail
+from django.conf import settings
+from drf_yasg.utils import swagger_auto_schema
+import random
+
+
+class GetAllUsers(APIView):
+    # permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        users = User.objects.all()
+        # serializer = GetAllUsersSerializer(users, many=True)
+        # return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# class UserRegisterView(APIView):
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+#         print('user is registering ')
+#         serializer = UserRegisterSerializer(data=request.data)
+
+#         if serializer.is_valid():
+#             user = serializer.save()
+#             print(user.email,'---')
+#             # Send OTP
+#             otp = random.randint(1000, 9999)
+#             cache.set(user.email, otp, timeout=300)
+
+#             send_mail(
+#                 "You are registered",
+#                 f"Please verify your email \n your otp is --> {otp}",
+#                 settings.EMAIL_HOST_USER,
+#                 [user.email],
+#                 fail_silently=False,
+#             )
+#             return Response({"success": True, "message": "User registered successfully. Please verify your email."}, status=201)
+#         print(serializer.errors)
+#         return Response({"Error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# class UpdateUserView(APIView):
+
+#     def put(self,requst, pk):
+#         try:
+#             user = User.objects.get(pk=pk)
+#         except User.DoesNotExist:
+#             return Response({"message":"User does not exist"})
+#         except Exception as e:
+#             return Response({"error":str(e)})
+#         data = requst.data
+#         serializer = UserSerializer(instance=user, data=data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({"message":"user is updated"},status=status.HTTP_200_OK)
+#         return Response({"success":False,"error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)        
+
+
+# class DeleteUser(APIView):
+
+#     # permission_classes = [IsAdminUser]
+#     def delete(self, request, pk):
+#         print(request.META.get('HTTP_AUTHORIZATION'))
+
+#         try:
+#             print(pk,'1111')
+#             user = User.objects.get(pk=pk)
+#             print(user,'---')
+#             user.delete()
+#             return Response({"success":True, "message":"User deleted successfully!"},status=200
+#             )
+
+#         except Exception as e:
+#             print(str(e))
+#             return Response({"success":False, "error":str(e)}, status=400)

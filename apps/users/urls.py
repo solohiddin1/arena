@@ -1,16 +1,15 @@
 from django.urls import path
-from app.views.admin import TeacherCrud, admin_panel, teacher_panel
-# from app.views.mock_data import MockDataActiveStudents, MockDataFinished, MockDataView, MockTwoCount
-from app.views.auth import (ChangePasswordView, LogoutApiView , ForgotPasswordView,
-    home, reset_page, reset_password, student_dashboard, userlogin, userlogin_view, loginexistinguser,
+# from apps.app.views.admin import TeacherCrud, admin_panel, teacher_panel
+from apps.users.views import (ChangePasswordView, LogoutApiView , ForgotPasswordView,
+    home, reset_page, reset_password, student_dashboard, UserLoginView, userlogin_view, loginexistinguser,
     loginexistinguser_view, verify_user_email_view,
-    verify, login, VerifyOtpView, )
+    verify, LoginApiView, VerifyOtpView, )
 
-from app.views.user import UserRegisterView , DeleteUser, GetAllUsers
+from apps.users.views import UserRegisterView , DeleteUser, GetAllUsers
 
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
-from app.views.arena import ArenaCreateView, ArenaListView
-from app.views.owner import OwnerProfileView, OwnerRegisterView
+from apps.users.views import ArenaCreateView, ArenaListView
+from apps.users.views import OwnerProfileView, OwnerRegisterView
 
 urlpatterns = [
     # mock data
@@ -25,14 +24,11 @@ urlpatterns = [
     path('owner_register/',OwnerRegisterView.as_view(),name='register_owner'),
     path('get_owner/',OwnerProfileView.as_view(),name='get_owner'),
 
-    path('add_arena/',ArenaCreateView.as_view(),name='add_arena'),
-    path('arena/<int:pk>/',ArenaListView.as_view(),name='arena_detail'),
-
     # users
     path('get_users/',GetAllUsers.as_view(),name='get_users'),
 
     # login
-    path('userlogin/',userlogin,name='userlogin'),
+    path('userlogin/',UserLoginView.as_view(),name='userlogin'),
     path('userlogin/view/',userlogin_view,name='userlogin_view'),
 
     path('login_existing_user/',loginexistinguser,name='login_existing_user'),

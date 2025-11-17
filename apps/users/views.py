@@ -1,6 +1,6 @@
 from rest_framework.generics import GenericAPIView
 from django.db import transaction
-from .serialziers import RegisterSerializer, UserVerifySerializer
+from .serialziers import RegisterSerializer, UserVerifySerializer, AuthOtpSendSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .repository import *
@@ -8,11 +8,12 @@ from apps.shared.enum import ResultCodes
 from apps.shared.utils import ErrorResponse
 from .repository import send_otp_email
 import datetime
-
+from rest_framework_simplejwt.tokens import RefreshToken
+from apps.shared.utils import SuccessResponse
 
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
-    role = "CLIENT"
+    role = "USER"
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -88,10 +89,9 @@ class VerifyOtp(GenericAPIView):
 
         # cart_new(user_role.user_id)
 
-        bonus_amount = BONUS_REFERRAL if user_role.role == "SELLER" else BONUS_NEW_USER
-        balance_new(user_role.user_id, user_role.role, bonus_amount)
+        # balance_new(user_role.user_id, user_role.role)
 
-        get_or_create_user_referral(user_role.user_id, user_role.role)
+        # get_or_create_user_referral(user_role.user_id, user_role.role)
 
         token = RefreshToken.for_user(user_role.user)
         token["role"] = str(user_role.role)
@@ -103,6 +103,41 @@ class VerifyOtp(GenericAPIView):
 
 
 
+
+
+class ApiAuthOtpSend(GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = AuthOtpSendSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # check user verified and send otp
+        print(serializer.validated_data['email'])
+        print(serializer.validated_data['role'])
+        user_role = get_user_role_by_email_and_role(
+            serializer.validated_data["email"],
+            serializer.validated_data["role"]
+        )
+        print(user_role.role)
+
+        if not user_role: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
+        print('------')
+        if not user_role.is_verified: return ErrorResponse(ResultCodes.USER_IS_NOT_VERIFIED)
+
+        otp = check_generate_auth_otp(user_role)
+
+        if not otp: return ErrorResponse(ResultCodes.DAILY_LIMIT_REACHED)
+
+        sms_res = reset_sms_send(otp.code, serializer.validated_data["phone"])
+        if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
+
+        return SuccessResponse({
+            "id": otp.id,
+            "otp": otp.code,
+            "message": "SMS sent successfully!!!"
+        })
 
 
 

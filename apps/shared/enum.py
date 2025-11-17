@@ -17,7 +17,8 @@ class ResultCodes(Enum):
     INTERNAL_SERVER_ERROR = -17
     BUSINESS_NOT_FOUND = -18
     USER_ROLE_NOT_FOUND = -19
-    OTP_EXPIRED = -20
+    USER_IS_NOT_VERIFIED = -20
+    OTP_EXPIRED = -21
     SERVER_ERROR = -23
     DEVICE_ALREADY_REGISTERED = -25
     ALREADY_VERIFIED = -57
@@ -30,6 +31,11 @@ ResultMessages = {
         "uz": "Muvaffaqiyatli bajarildi!",
         "en": "Success!",
         "ru": "Успешно!"
+    },
+    "USER_IS_NOT_VERIFIED": {
+        "uz": "User vefikatsiyadan o'tmaga",
+        "ru": "User ne verifitsirovan",
+        "en": "User is not verified"
     },
     "UNKNOWN_ERROR": {
         "uz": "Noma'lum xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko‘ring!",

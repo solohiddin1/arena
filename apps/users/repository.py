@@ -397,9 +397,10 @@ def get_user_role_by_role_and_user(role, user):
         raise e
 
 
-def get_user_role_by_phone_and_role(phone, role):
+def get_user_role_by_email_and_role(email, role):
     try:
-        return UserRole.objects.select_related('user').filter(user__username=phone, role=role).first()
+        return UserRole.objects.filter(user__email=email, role=role).first()
+        # return UserRole.objects.select_related('user').filter(user__email=email, role=role).first()
     except Exception as e:
         logger.exception(e)
         raise e

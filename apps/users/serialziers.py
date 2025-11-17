@@ -70,3 +70,10 @@ class RegisterSerializer(serializers.Serializer):
         raise serializers.ValidationError(
             "Username must be a valid email or Uzbek phone number (e.g. 998901234567)."
         )
+
+
+
+class UserVerifySerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True, allow_null=False)
+    role = serializers.CharField(required=True, max_length=30)
+    code = serializers.CharField(required=True, max_length=4)

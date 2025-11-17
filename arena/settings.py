@@ -71,7 +71,9 @@ APPS = [
     'apps.users',
     'apps.app',
     'apps.posts',
+    'apps.shared',
 ]
+
 LIBS = [
     'drf_yasg',
     'rest_framework',

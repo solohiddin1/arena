@@ -1,12 +1,15 @@
 from rest_framework.generics import GenericAPIView
 from django.db import transaction
-from .serialziers import RegisterSerializer
+from .serialziers import RegisterSerializer, UserVerifySerializer
 from rest_framework.response import Response
 from rest_framework import status
+from .repository import *
+from apps.shared.enum import ResultCodes
+from apps.shared.utils import ErrorResponse
 
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
-    role = None
+    role = "CLIENT"
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -32,7 +35,8 @@ class RegisterUser(GenericAPIView):
         else:
             create_user_role(self.role, user.id, otp, req_body["lat"], req_body["long"], datetime.datetime.now())
 
-        send_result = sms_send(otp, req_body["username"])
+        # send_result = sms_send(otp, req_body["username"])
+        
 
         if not send_result:
             return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
@@ -53,6 +57,46 @@ class RegisterUser(GenericAPIView):
             "referral_code": req_body["referral_code"]
         })
 
+
+
+class VerifyOtp(GenericAPIView):
+    serializer_class = UserVerifySerializer
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_role = get_user_role_by_userid_role_self(
+            serializer.validated_data["user_id"],
+            serializer.validated_data["role"]
+        )
+
+        if user_role is None: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
+
+        if user_role.is_verified: return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+
+        if timezone.now() - user_role.otp_created_at > datetime.timedelta(
+            minutes=1): return ErrorResponse(ResultCodes.OTP_EXPIRED)
+
+        if user_role.otp != serializer.validated_data["code"]: return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
+
+        update_user_role_set_verified(user_role.id, True, True)
+
+        cart_new(user_role.user_id)
+
+        bonus_amount = BONUS_REFERRAL if user_role.role == "SELLER" else BONUS_NEW_USER
+        balance_new(user_role.user_id, user_role.role, bonus_amount)
+
+        get_or_create_user_referral(user_role.user_id, user_role.role)
+
+        token = RefreshToken.for_user(user_role.user)
+        token["role"] = str(user_role.role)
+
+        return SuccessResponse({
+            "refresh": str(token),
+            "access": str(token.access_token)
+        })
 
 
 

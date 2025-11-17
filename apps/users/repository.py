@@ -3,6 +3,47 @@ from django.utils import timezone
 
 from apps.shared.models import logger
 from apps.users.models import User, UserRole, UserDevice, UserAuthOtp
+from django.core.mail import send_mail as send_otp
+from django.conf import settings
+from django.core.mail import send_mail as send_otp
+from django.core.mail import BadHeaderError, SMTPException
+from django.conf import settings
+import socket
+
+
+def send_otp_email(email, otp_code):
+    subject = "Your OTP Code"
+    message = f"Your code is {otp_code}"
+
+    try:
+        # Check for internet connection
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
+
+        # Attempt to send email
+        sent = send_otp(
+            subject=subject,
+            message=message,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[email],
+            fail_silently=False,  # So we can catch errors
+        )
+
+        if sent:  
+            return {"success": True, "message": "OTP email sent successfully"}
+        else:
+            return {"success": False, "message": "Email was not sent"}
+
+    except socket.error:
+        return {"success": False, "message": "No internet connection"}
+
+    except BadHeaderError:
+        return {"success": False, "message": "Invalid email header"}
+
+    except SMTPException as e:
+        return {"success": False, "message": f"SMTP error: {str(e)}"}
+
+    except Exception as e:
+        return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
 
 def get_user_by_username(username):

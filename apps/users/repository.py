@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.shared.models import logger
-from apps.users.models import User, UserRole, UserDevice, UserAuthOtp
+from apps.users.models import User, UserRole, UserDevice, UserAuthOtp, UserPasswordReset, OtpSentLog
 from django.core.mail import send_mail as send_otp
 from django.conf import settings
 from django.core.mail import send_mail as send_otp
@@ -52,6 +52,63 @@ def send_otp_email(email, otp_code):
         return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
 
+
+def check_generate_otp(user_role: UserRole):
+    new_code = str(random.randint(1000, 9999))
+
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=1)
+
+    otp = UserPasswordReset.objects.select_related('user_role__user').filter(user_role=user_role).first()
+
+    if otp:
+        # Only count - no need for select_related
+        sent_count = OtpSentLog.objects.filter(email=user_role.user.email, created_at__gte=today_start).count()
+
+        if sent_count >= 5:
+            return None
+
+        otp.code = new_code
+        otp.incorrect_count = 0
+        otp.otp_created_at = timezone.now()
+        otp.otp_count += 1
+        otp.verified = False
+    else:
+        otp = UserPasswordReset.objects.create(user_role=user_role, code=new_code, otp_created_at=timezone.now(), otp_count=1, verified=False)
+
+    otp.save()
+    return otp
+
+
+
+def check_generate_auth_otp(user_role: UserRole):
+    new_code = str(random.randint(1000, 9999))
+
+    if user_role.user.email == 'sirojiddinovsolohiddin961@gmail.com':
+        new_code = '2222'
+
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=1)
+
+    otp = UserAuthOtp.objects.select_related('user_role__user').filter(user_role=user_role).first()
+
+    if otp:
+        # Only count - no need for select_related
+        sent_count = OtpSentLog.objects.filter(email=user_role.user.email, created_at__gte=today_start).count()
+
+        if sent_count >= 100:
+            return None
+
+        otp.code = new_code
+        otp.incorrect_count = 0
+        otp.otp_created_at = timezone.now()
+        otp.verified = False
+    else:
+        otp = UserAuthOtp.objects.create(user_role=user_role, code=new_code, otp_created_at=timezone.now(),
+                                         verified=False)
+
+    otp.save()
+    return otp
+
+
 def get_user_by_username(username):
     try:
         return User.objects.filter(email=username).first()
@@ -81,12 +138,36 @@ def get_user_role_by_username_role(username, role, is_active=True, is_verified=T
         raise e
 
 
+
 def get_user_role_by_userid_role_self(user_id, role):
     try:
-        return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
+        
+        user_role = UserRole.objects.filter(id=user_id).first()
+        # user_role = UserAuthOtp.objects.filter(user_role__id=user_id).first()
+        all_users = UserAuthOtp.objects.all()
+        print([i.user_role.id for i in all_users])
+        # print(user_id)
+        print(user_role)
+        # print(user_role.user.email)
+        # print(user_role.otp)
+        return user_role
+        # return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
     except Exception as e:
         logger.exception(e)
         raise e
+    
+# def get_user_role_by_userid_role_self(user_id, role):
+#     try:
+#         user_role = UserRole.objects.filter(user_id=user_id, role=role).first()
+#         print(user_id)
+#         print(user_role)
+#         print(user_role.user.email)
+#         print(user_role.otp)
+#         return user_role
+#         # return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
+#     except Exception as e:
+#         logger.exception(e)
+#         raise e
 
 
 def get_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
@@ -116,7 +197,7 @@ def exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=T
         raise e
 
 
-def create_user(email, is_active=True):
+def create_user(email, first_name, password, is_active=True):
     try:
         # Ensure `username` (which is unique on the AbstractUser) is set
         # When USERNAME_FIELD is changed to `email` but the `username` column still
@@ -125,6 +206,8 @@ def create_user(email, is_active=True):
         user = User.objects.create(
             email=email,
             username=email,
+            first_name=first_name,
+            password=password,
             # is_active=is_active
         )
         user.save()

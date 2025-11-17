@@ -83,3 +83,10 @@ class UserVerifySerializer(serializers.Serializer):
 class AuthOtpSendSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, max_length=150)
     role = serializers.CharField(required=True, max_length=30)
+
+
+
+class AuthOtpVerifySerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=True)
+    code = serializers.IntegerField(required=True,)
+

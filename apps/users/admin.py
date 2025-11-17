@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, UserRole, UserAuthOtp , UserDevice, VersionControl
+from .models import User, UserRole, UserAuthOtp , UserDevice, VersionControl, OtpSentLog
 from django.utils.html import format_html
 
 # Register your models here.
@@ -29,3 +29,13 @@ class Admin(admin.ModelAdmin):
 @admin.register(VersionControl)
 class VersionControlAdmin(admin.ModelAdmin):
     list_display = ['id', 'device_type', 'current_version', 'is_active', 'force_update', 'updated_at']
+
+
+@admin.register(UserAuthOtp)
+class UserAuthOtpAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user_role', 'code', 'is_used', 'incorrect_count', 'verified']
+
+
+@admin.register(OtpSentLog)
+class OtpSentLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'email', 'message_id', 'otp']

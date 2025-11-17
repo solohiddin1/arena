@@ -1,15 +1,17 @@
 from rest_framework.generics import GenericAPIView
 from django.db import transaction
-from .serialziers import RegisterSerializer, UserVerifySerializer, AuthOtpSendSerializer
+from .serialziers import RegisterSerializer, UserVerifySerializer, AuthOtpSendSerializer, AuthOtpVerifySerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .repository import *
 from apps.shared.enum import ResultCodes
 from apps.shared.utils import ErrorResponse
-from .repository import send_otp_email
+from .repository import send_otp_email, check_generate_otp, check_generate_auth_otp
 import datetime
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shared.utils import SuccessResponse
+import uuid
+
 
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
@@ -31,7 +33,9 @@ class RegisterUser(GenericAPIView):
         print(user)
         print(req_body['email'])
         if user is None:
-            user = create_user(req_body["email"])
+            user = create_user(email=req_body["email"], 
+                               first_name=req_body.get("first_name",""),
+                               password=req_body["password"], is_active=False)
         print('user is passed -------------------')
         user_role = get_user_role_by_username_role_self(req_body["email"], self.role)
 
@@ -62,7 +66,6 @@ class RegisterUser(GenericAPIView):
         })
 
 
-
 class VerifyOtp(GenericAPIView):
     serializer_class = UserVerifySerializer
 
@@ -87,11 +90,6 @@ class VerifyOtp(GenericAPIView):
 
         update_user_role_set_verified(user_role.id, True, True)
 
-        # cart_new(user_role.user_id)
-
-        # balance_new(user_role.user_id, user_role.role)
-
-        # get_or_create_user_referral(user_role.user_id, user_role.role)
 
         token = RefreshToken.for_user(user_role.user)
         token["role"] = str(user_role.role)
@@ -100,9 +98,6 @@ class VerifyOtp(GenericAPIView):
             "refresh": str(token),
             "access": str(token.access_token)
         })
-
-
-
 
 
 class ApiAuthOtpSend(GenericAPIView):
@@ -130,8 +125,12 @@ class ApiAuthOtpSend(GenericAPIView):
 
         if not otp: return ErrorResponse(ResultCodes.DAILY_LIMIT_REACHED)
 
-        sms_res = reset_sms_send(otp.code, serializer.validated_data["phone"])
-        if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
+        # sms_res = reset_sms_send(otp.code, serializer.validated_data["phone"])
+        # if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
+        email_res = send_otp_email(serializer.validated_data["email"], otp.code)
+        print(email_res)
+        if not email_res["success"]:
+            return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
 
         return SuccessResponse({
             "id": otp.id,
@@ -140,6 +139,39 @@ class ApiAuthOtpSend(GenericAPIView):
         })
 
 
+
+class ApiAuthOtpVerify(GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = AuthOtpVerifySerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        otp_ = get_user_auth_otp_by_id(serializer.validated_data['id'])
+        if not otp_: return ErrorResponse(ResultCodes.UNKNOWN_ERROR)
+
+        if otp_.verified: return ErrorResponse(ResultCodes.ALREADY_VERIFIED)
+
+        if otp_.incorrect_count >= 20: return ErrorResponse(ResultCodes.OTP_INCORRECT_CNT)
+
+        if timezone.now() - otp_.otp_created_at > datetime.timedelta(minutes=20): return ErrorResponse(
+            ResultCodes.OTP_EXPIRED)
+
+        if otp_.code != serializer.validated_data['code']:
+            update_user_auth_otp_incorrect_count(otp_)
+            return ErrorResponse(ResultCodes.OTP_INCORRECT)
+
+        reset_token = uuid.uuid4()
+        update_user_auth_otp_verified(otp_, reset_token)
+
+        token = RefreshToken.for_user(otp_.user_role.user)
+        token["role"] = str(otp_.user_role.role)
+
+        return SuccessResponse({
+            "refresh": str(token),
+            "access": str(token.access_token)
+        })
 
 
 

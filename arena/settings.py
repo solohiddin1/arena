@@ -40,23 +40,6 @@ ALLOWED_HOSTS = settings.ALLOWED_HOSTS
 
 # Application definition
 
-# INSTALLED_APPS = [
-#     'apps.users',
-#     'apps.app',
-#     'apps.posts',
-
-# ]
-# INSTALLED_APPS += [
-#     'django.contrib.admin',
-#     'django.contrib.auth',
-#     'django.contrib.contenttypes',
-#     'django.contrib.sessions',
-#     'django.contrib.messages',
-#     'django.contrib.staticfiles',
-    
-# ]
-
-
 BASE_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -153,7 +136,30 @@ DATABASES = {
 #     ],
 # }
 
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    # 'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+}
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Arena API',
+    'VERSION': '1.0.0',
+    'DESCRIPTION': 'Here is Arena API endpoints documentation',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # "ENUM_NAME_OVERRIDES": {
+    #     "apps.order.models.Order.state": "OrderStateEnum",
+    #     "apps.product.models.Product.state": "ProductStateEnum",
+    # }
+}
+
+# settings.py
+# REST_FRAMEWORK = {
+#         'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+#         # ... other DRF settings
+# }
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -181,19 +187,19 @@ LOGIN_URL = '/login/'
 # ]
 
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-}
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ],
+# }
 
 
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Non bor  API',
-    'VERSION': '2.0.0',
-    'DESCRIPTION': 'Here is Nonbor API endpoints documentation',
-    'SERVE_INCLUDE_SCHEMA': False,
-}
+# SPECTACULAR_SETTINGS = {
+#     'TITLE': 'Arena API',
+#     'VERSION': '1.0.0',
+#     'DESCRIPTION': 'Here is Arena API endpoints documentation',
+#     'SERVE_INCLUDE_SCHEMA': False,
+# }
 
 # REST_FRAMEWORK is defined above (merged schema + auth)
 
@@ -207,6 +213,39 @@ TIME_ZONE = settings.TIME_ZONE
 USE_I18N = True
 
 USE_TZ = True
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+
+    'ALGORITHM': 'HS256',
+    'VERIFYING_KEY': None,  # 'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+
+    'JTI_CLAIM': 'jti',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=10),
+}
 
 
 # Static files (CSS, JavaScript, Images)

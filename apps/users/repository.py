@@ -142,7 +142,7 @@ def get_user_role_by_username_role(username, role, is_active=True, is_verified=T
 def get_user_role_by_userid_role_self(user_id, role):
     try:
         
-        user_role = UserRole.objects.filter(id=user_id).first()
+        user_role = UserRole.objects.filter(user_id=user_id).first()
         # user_role = UserAuthOtp.objects.filter(user_role__id=user_id).first()
         all_users = UserAuthOtp.objects.all()
         print([i.user_role.id for i in all_users])

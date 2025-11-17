@@ -10,9 +10,12 @@ from .repository import send_otp_email, check_generate_otp, check_generate_auth_
 import datetime
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shared.utils import SuccessResponse
+from drf_spectacular.utils import extend_schema
 import uuid
 
-
+@extend_schema(
+    summary='to register user'
+)
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
     role = "USER"
@@ -65,7 +68,9 @@ class RegisterUser(GenericAPIView):
             "language": user.language,
         })
 
-
+@extend_schema(
+    summary='to verify previous registered user'
+)
 class VerifyOtp(GenericAPIView):
     serializer_class = UserVerifySerializer
 
@@ -84,7 +89,7 @@ class VerifyOtp(GenericAPIView):
         if user_role.is_verified: return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
 
         if timezone.now() - user_role.otp_created_at > datetime.timedelta(
-            minutes=1): return ErrorResponse(ResultCodes.OTP_EXPIRED)
+            minutes=20): return ErrorResponse(ResultCodes.OTP_EXPIRED)
 
         if user_role.otp != serializer.validated_data["code"]: return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
 
@@ -100,6 +105,9 @@ class VerifyOtp(GenericAPIView):
         })
 
 
+@extend_schema(
+    summary='to get otp for existing user'
+)
 class ApiAuthOtpSend(GenericAPIView):
     queryset = User.objects.all()
     serializer_class = AuthOtpSendSerializer
@@ -139,7 +147,9 @@ class ApiAuthOtpSend(GenericAPIView):
         })
 
 
-
+@extend_schema(
+    summary='to verify otp of existing user'
+)
 class ApiAuthOtpVerify(GenericAPIView):
     queryset = User.objects.all()
     serializer_class = AuthOtpVerifySerializer

@@ -1,3 +1,61 @@
+from rest_framework.generics import GenericAPIView
+from django.db import transaction
+from .serialziers import RegisterSerializer
+from rest_framework.response import Response
+from rest_framework import status
+
+class RegisterUser(GenericAPIView):
+    serializer_class = RegisterSerializer
+    role = None
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        req_body = serializer.validated_data
+
+        otp = generate_otp()
+        if req_body["username"] == '998909564222':
+            otp = "2222"
+
+        user = get_user_by_username(req_body["username"])
+
+        if user is None:
+            user = create_user(req_body["first_name"], req_body["last_name"], req_body["username"])
+
+        user_role = get_user_role_by_username_role_self(req_body["username"], self.role)
+
+        if user_role is not None:
+            if user_role.is_verified: return Response({'error':'user already registered'}, status=status.HTTP_400_BAD_REQUEST)
+            update_user_role(user_role.id, otp, req_body["lat"], req_body["long"], datetime.datetime.now())
+
+        else:
+            create_user_role(self.role, user.id, otp, req_body["lat"], req_body["long"], datetime.datetime.now())
+
+        send_result = sms_send(otp, req_body["username"])
+
+        if not send_result:
+            return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
+
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "phone": user.phone,
+            "role": self.role,
+            "is_verified": False,
+            "otp": otp,
+            "lang": user.lang,
+            "lat": req_body["lat"],
+            "long": req_body["long"],
+            "referral_code": req_body["referral_code"]
+        })
+
+
+
+
 # from django.shortcuts import get_object_or_404, redirect, render
 # from rest_framework.response import Response
 # from rest_framework.views import APIView

@@ -1,0 +1,421 @@
+from django.db import transaction
+from django.utils import timezone
+
+from apps.shared.models import logger
+from apps.users.models import User, UserRole, UserDevice, UserAuthOtp
+
+
+def get_user_by_username(username):
+    try:
+        return User.objects.filter(username=username).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_username_role_self(username, role):
+    try:
+        return UserRole.objects.select_related('user').filter(user__username=username, role=role).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_username_role(username, role, is_active=True, is_verified=True):
+    try:
+        return UserRole.objects.select_related('user').filter(
+            user__username=username,
+            role=role,
+            is_active=is_active,
+            is_verified=is_verified
+        ).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_userid_role_self(user_id, role):
+    try:
+        return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
+    try:
+        return UserRole.objects.select_related('user').filter(
+            user_id=user_id,
+            role=role,
+            is_active=is_active,
+            is_verified=is_verified
+        ).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
+    try:
+        # No select_related needed for exists() - it doesn't retrieve objects
+        return UserRole.objects.filter(
+            user_id=user_id,
+            role=role,
+            is_active=is_active,
+            is_verified=is_verified
+        ).exists()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def create_user(first_name, last_name, username, is_active=True):
+    try:
+        user = User.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            username=username,
+            is_active=is_active
+        )
+        user.save()
+        return user
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_role(user_role_id, otp, lat, long, otp_created_at, is_verified=False, is_active=False, password=None):
+    try:
+        UserRole.objects.filter(id=user_role_id).update(
+            otp=otp,
+            lat=lat,
+            long=long,
+            password=password,
+            otp_created_at=otp_created_at,
+            is_verified=is_verified,
+            is_active=is_active
+        )
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_role_set_verified(user_role_id, is_verified=False, is_active=False):
+    try:
+        UserRole.objects.filter(id=user_role_id).update(
+            is_verified=is_verified,
+            is_active=is_active
+        )
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def create_user_role(role, user_id, otp, lat, long, otp_created_at, is_verified=False, is_active=False, password=None):
+    try:
+        user_role = UserRole.objects.create(
+            role=role,
+            user_id=user_id,
+            otp=otp,
+            lat=lat,
+            long=long,
+            password=password,
+            otp_created_at=otp_created_at,
+            is_verified=is_verified,
+            is_active=is_active
+        )
+        user_role.save()
+        return user_role
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_device_by_user_role_device(user, role, device_id):
+    try:
+        return UserDevice.objects.select_related('user').filter(
+            user=user,
+            role=role,
+            device_id=device_id
+        ).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def create_user_device(user, role, device_id, device_type, fcm_token):
+    try:
+        device = UserDevice.objects.create(
+            user=user,
+            role=role,
+            device_id=device_id,
+            device_type=device_type,
+            fcm_token=fcm_token
+        )
+        device.save()
+        return device
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_device_fcm_token(device, fcm_token):
+    try:
+        device.fcm_token = fcm_token
+        device.save()
+        return device
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def delete_user_device_by_user_role_device(user, role, device_id):
+    try:
+        return UserDevice.objects.filter(user=user, role=role, device_id=device_id).delete()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_user(user):
+    try:
+        return UserRole.objects.select_related('user').filter(user=user).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_role_location(user_role, lat, long):
+    try:
+        user_role.lat = lat
+        user_role.long = long
+        user_role.save()
+        return user_role
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_active_verified_user_role(user):
+    try:
+        return UserRole.objects.select_related('user').filter(
+            user=user,
+            is_active=True,
+            is_verified=True
+        ).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_referral_code(user_referral, invite_ref_code):
+    try:
+        user_referral.invite_ref_code = invite_ref_code
+        user_referral.applied = True
+        user_referral.save()
+        return user_referral
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_password_reset_incorrect_count(password_reset):
+    try:
+        password_reset.incorrect_count += 1
+        password_reset.save()
+        return password_reset
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_password_reset_verified(password_reset, reset_token):
+    try:
+        password_reset.reset_token = reset_token
+        password_reset.reset_token_created_at = timezone.now()
+        password_reset.verified = True
+        password_reset.save()
+        return password_reset
+    except Exception as e:
+        logger.exception(e)
+        raise e
+    
+
+def update_user_role_password(user_role, password):
+    try:
+        user_role.password = password
+        user_role.save()
+        return user_role
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def clear_user_password_reset_token(password_reset):
+    try:
+        password_reset.reset_token = None
+        password_reset.reset_token_created_at = None
+        password_reset.save()
+        return password_reset
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_auth_otp_by_id(otp_id):
+    try:
+        return UserAuthOtp.objects.select_related('user_role__user').filter(id=otp_id).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_auth_otp_incorrect_count(otp):
+    try:
+        otp.incorrect_count += 1
+        otp.save()
+        return otp
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_auth_otp_verified(otp, reset_token):
+    try:
+        otp.reset_token = reset_token
+        otp.reset_token_created_at = timezone.now()
+        otp.verified = True
+        otp.save()
+        return otp
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_admin_user_roles():
+    try:
+        return UserRole.objects.select_related('user').filter(
+            role='ADMIN',
+            is_active=True,
+            is_verified=True
+        )
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def deactivate_user_role(user_role):
+    try:
+        user_role.is_active = False
+        user_role.is_verified = False
+        user_role.save()
+        return user_role
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def check_user_exists_by_phone(phone):
+    try:
+        return User.objects.filter(phone=phone, is_active=True).exists()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def check_user_device_exists(device_id):
+    try:
+        return UserDevice.objects.filter(device_id=device_id).exists()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_by_id(user_id, is_active=True):
+    try:
+        return User.objects.filter(id=user_id, is_active=is_active).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_role_and_user(role, user):
+    try:
+        return UserRole.objects.select_related('user').filter(role=role, user=user).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_phone_and_role(phone, role):
+    try:
+        return UserRole.objects.select_related('user').filter(user__username=phone, role=role).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_id(user_role_id):
+    try:
+        return UserRole.objects.select_related('user').filter(id=user_role_id).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_user_role_by_user_and_role(user, role, is_verified=True):
+    try:
+        return UserRole.objects.select_related('user').filter(
+            user=user,
+            role=role,
+            is_verified=is_verified
+        ).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def create_user_simple(username, first_name, last_name, phone=None, email=None):
+    """Create a simple user without password (for OAuth/Click integration)"""
+    try:
+        user = User.objects.create(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            email=email
+        )
+        return user
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def get_or_create_user_role_simple(user, role):
+    """Get or create a user role without OTP (for OAuth/Click integration)"""
+    try:
+        user_role = UserRole.objects.select_related('user').filter(user=user, role=role).first()
+        if not user_role:
+            user_role = UserRole.objects.create(
+                user=user,
+                role=role,
+                is_active=True,
+                is_verified=True
+            )
+        return user_role
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def update_user_role_mini_app(user_role, mini_app=True):
+    """Update mini_app flag for user role"""
+    try:
+        user_role.mini_app = mini_app
+        user_role.is_active = True
+        user_role.is_verified = True
+        user_role.save()
+        return user_role
+    except Exception as e:
+        logger.exception(e)
+        raise e

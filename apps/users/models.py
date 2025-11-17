@@ -30,7 +30,6 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     email = models.EmailField(unique=True, default=None,blank=True,null=True)
     image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'))
     phone_number = models.CharField(max_length=12, unique=True, blank=True, null=True)
-    email_verified = models.BooleanField(default=False)
     language = models.CharField(choices=LANG_CHOICES, max_length=2, default='UZ', verbose_name=_('lang'))
 
     objects = MyUserManager()

@@ -4,7 +4,7 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser
 from django.utils.translation import gettext_lazy as _
-
+from .managers import MyUserManager
 
 # Create your models here.
 
@@ -14,29 +14,6 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
-
-
-class CustomUserManager(BaseUserManager):
-    def create_user(self, phone_number, email=None,password = None ,**extra_fields):
-        if not phone_number:
-            raise ValueError('Phone_number maydoni bo`lishi kerak emas!')
-        # phone_number = self.normalize_phone_number(phone_number)
-        user = self.model(phone_number=phone_number, email=email, **extra_fields)
-        
-        user.set_password(password or '123456')
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, phone_number, password, email=None, **extra_fields):
-        extra_fields.setdefault('is_admin', True)
-        extra_fields.setdefault('is_staff', True)
-
-        if extra_fields.get('is_admin') is not True:
-            raise ValueError('Superuser is_admin=True bo`lishi kerak!')
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser is_staff=True bo`lishi kerak!')
-
-        return self.create_user(phone_number, email, password, **extra_fields)
 
 
 class User(AbstractUser, BaseModel, PermissionsMixin):
@@ -51,11 +28,12 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     # )
     name = models.CharField(max_length=255,null=True)
     email = models.EmailField(unique=True, default=None,blank=True,null=True)
+    image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'))
     phone_number = models.CharField(max_length=12, unique=True, blank=True, null=True)
     email_verified = models.BooleanField(default=False)
     language = models.CharField(choices=LANG_CHOICES, max_length=2, default='UZ', verbose_name=_('lang'))
 
-    objects = CustomUserManager()
+    objects = MyUserManager()
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []
@@ -74,24 +52,25 @@ class UserRole(BaseModel):
         ('SELLER', 'SELLER'),
         ('USER', 'USER')
     )
-    user = models.ForeignKey(User, verbose_name=("userrole"), on_delete=models.CASCADE)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, verbose_name=("role"))
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
+    user = models.ForeignKey(User, verbose_name=_('userrole'), on_delete=models.CASCADE)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, verbose_name=_('role'))
+    latitude = models.FloatField(null=True, blank=True, verbose_name=_('lat'))
+    longitude = models.FloatField(null=True, blank=True, verbose_name=_('long'))
     password = models.CharField(max_length=255, verbose_name=_('password'))
-    is_verified = models.BooleanField(default=False)
-    
+    is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
+    is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
+
     class Meta:
         unique_together=('user', 'role')
 
 
 class UserAuthOtp(BaseModel):
     user_role = models.OneToOneField(UserRole, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, verbose_name=("userotp"), on_delete=models.CASCADE)
+    user = models.ForeignKey(User, verbose_name=_('userotp'), on_delete=models.CASCADE)
     otp = models.IntegerField()
     is_used = models.BooleanField(default=False)
     incorrect_count = models.IntegerField(default=0)
-    verified = models.BooleanField(default=False, verbose_name=("verified"))
+    verified = models.BooleanField(default=False, verbose_name=_('verified'))
 
 
 class VersionControl(BaseModel):
@@ -99,17 +78,17 @@ class VersionControl(BaseModel):
         ("IOS", "IOS"),
         ("ANDROID", "ANDROID")
     )
-    device_type = models.CharField(max_length=10, choices=DEVICE_TYPE_CHOICES, verbose_name=("device_type"))
-    current_version = models.CharField(max_length=10, verbose_name=("current_version"))
-    is_active = models.BooleanField(default=False, verbose_name=("is_active"))
-    force_update = models.BooleanField(default=False, verbose_name=("force_update"))
+    device_type = models.CharField(max_length=10, choices=DEVICE_TYPE_CHOICES, verbose_name=_("device_type"))
+    current_version = models.CharField(max_length=10, verbose_name=_("current_version"))
+    is_active = models.BooleanField(default=False, verbose_name=_("is_active"))
+    force_update = models.BooleanField(default=False, verbose_name=_("force_update"))
 
     def __str__(self):
         return f"{self.device_type} - {self.current_version}"
 
     class Meta:
-        verbose_name = ("App Version Control")
-        verbose_name_plural = ("App Version Controls")
+        verbose_name = _("App Version Control")
+        verbose_name_plural = _("App Version Controls")
         db_table = "app_version_control"
 
 
@@ -129,6 +108,6 @@ class UserDevice(BaseModel):
 
 
 class OtpSentLog(BaseModel):
-    email = models.CharField(max_length=12)
-    message_id = models.CharField(max_length=17)
-    otp = models.CharField(max_length=4, null=True, blank=True)
+    email = models.CharField(max_length=12, verbose_name=_("email"))
+    message_id = models.CharField(max_length=17, verbose_name=_("message_id"))
+    otp = models.CharField(max_length=4, null=True, blank=True, verbose_name=_("otp"))

@@ -20,6 +20,8 @@ from django.urls import re_path
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+# from drf_spectacular.views import (SpectacularAPIView, SpectacularSwaggerView)
+
 schema_view = get_schema_view(
     openapi.Info(
         title="Arena API",
@@ -33,11 +35,15 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    # path("swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+    path("swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
     path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+    # path("swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="schema-swagger-ui"),
+    # path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    # path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+
     # path("redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
     path('admin/', admin.site.urls),
-    path('api/', include('apps.app.urls')),
-    path('api/', include('apps.users.urls')),
-    path('api/', include('apps.posts.urls')),
+    path('api/app/', include('apps.app.urls')),
+    path('api/user/', include('apps.users.urls')),
+    path('api/post/', include('apps.posts.urls')),
 ]

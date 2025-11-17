@@ -77,6 +77,7 @@ APPS = [
 LIBS = [
     'drf_yasg',
     'rest_framework',
+    'drf_spectacular',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
 ]
@@ -116,22 +117,40 @@ WSGI_APPLICATION = 'arena.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': settings.DATABASE_ENGINE,
+        'NAME': settings.DATABASE_NAME,
+        'USER': settings.DATABASE_USER,
+        'PASSWORD': settings.DATABASE_PASSWORD,
+        'HOST': settings.DATABASE_HOST,
+        'PORT': settings.DATABASE_PORT,
     }
 }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': settings.DATABASE_ENGINE,
-#         'NAME': settings.DATABASE_NAME,
-#         'USER': settings.DATABASE_USER,
-#         'PASSWORD': settings.DATABASE_PASSWORD,
-#         'HOST': settings.DATABASE_HOST,
-#         'PORT': settings.DATABASE_PORT,
-#     }
+
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ),
+#     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+# }
+
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ],
 # }
 
 
@@ -168,6 +187,15 @@ REST_FRAMEWORK = {
     ],
 }
 
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Non bor  API',
+    'VERSION': '2.0.0',
+    'DESCRIPTION': 'Here is Nonbor API endpoints documentation',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+# REST_FRAMEWORK is defined above (merged schema + auth)
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

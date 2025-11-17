@@ -1,11 +1,13 @@
 from django.urls import path
 # from app.views.user import UserRegisterView , DeleteUser, GetAllUsers
 
-from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 # from apps.app.views.arena import ArenaCreateView, ArenaListView
 # from apps.app.views import OwnerProfileView, OwnerRegisterView
 
 urlpatterns = [
+    # path('token/',TokenObtainPairView.as_view()),
+    # path('token/refresh/',TokenRefreshView.as_view()),
+]
     # mock data
     
     # owner
@@ -20,9 +22,5 @@ urlpatterns = [
     # login
     
     # token
-    path('token/',TokenObtainPairView.as_view()),
-    path('token/refresh/',TokenRefreshView.as_view()),
 
     # path('',home, name='home'),
-
-]

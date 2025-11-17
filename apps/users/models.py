@@ -34,7 +34,7 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
 
     objects = MyUserManager()
 
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     def __str__(self):
@@ -53,11 +53,13 @@ class UserRole(BaseModel):
     )
     user = models.ForeignKey(User, verbose_name=_('userrole'), on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, verbose_name=_('role'))
-    latitude = models.FloatField(null=True, blank=True, verbose_name=_('lat'))
-    longitude = models.FloatField(null=True, blank=True, verbose_name=_('long'))
-    password = models.CharField(max_length=255, verbose_name=_('password'))
+    lat = models.FloatField(null=True, blank=True, verbose_name=_('lat'))
+    long = models.FloatField(null=True, blank=True, verbose_name=_('long'))
+    password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
     is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
     is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
+    otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
+    otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
 
     class Meta:
         unique_together=('user', 'role')

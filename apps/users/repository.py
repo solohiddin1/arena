@@ -1,3 +1,4 @@
+import random
 from django.db import transaction
 from django.utils import timezone
 
@@ -6,9 +7,14 @@ from apps.users.models import User, UserRole, UserDevice, UserAuthOtp
 from django.core.mail import send_mail as send_otp
 from django.conf import settings
 from django.core.mail import send_mail as send_otp
-from django.core.mail import BadHeaderError, SMTPException
+from django.core.mail import BadHeaderError
 from django.conf import settings
 import socket
+from django.db import IntegrityError
+
+
+def generate_otp():
+    return str(random.randint(1000, 9999))
 
 
 def send_otp_email(email, otp_code):
@@ -39,8 +45,8 @@ def send_otp_email(email, otp_code):
     except BadHeaderError:
         return {"success": False, "message": "Invalid email header"}
 
-    except SMTPException as e:
-        return {"success": False, "message": f"SMTP error: {str(e)}"}
+    # except SMTPException as e:
+    #     return {"success": False, "message": f"SMTP error: {str(e)}"}
 
     except Exception as e:
         return {"success": False, "message": f"Unexpected error: {str(e)}"}
@@ -48,7 +54,7 @@ def send_otp_email(email, otp_code):
 
 def get_user_by_username(username):
     try:
-        return User.objects.filter(username=username).first()
+        return User.objects.filter(email=username).first()
     except Exception as e:
         logger.exception(e)
         raise e
@@ -110,13 +116,16 @@ def exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=T
         raise e
 
 
-def create_user(first_name, last_name, username, is_active=True):
+def create_user(email, is_active=True):
     try:
+        # Ensure `username` (which is unique on the AbstractUser) is set
+        # When USERNAME_FIELD is changed to `email` but the `username` column still
+        # exists and is unique, creating a user without a username will cause
+        # a UNIQUE constraint error (multiple users with empty username '').
         user = User.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            username=username,
-            is_active=is_active
+            email=email,
+            username=email,
+            # is_active=is_active
         )
         user.save()
         return user

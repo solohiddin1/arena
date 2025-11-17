@@ -6,6 +6,9 @@ from rest_framework import status
 from .repository import *
 from apps.shared.enum import ResultCodes
 from apps.shared.utils import ErrorResponse
+from .repository import send_otp_email
+import datetime
+
 
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
@@ -17,16 +20,19 @@ class RegisterUser(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         req_body = serializer.validated_data
 
+        print('user is here')
         otp = generate_otp()
-        if req_body["username"] == '998909564222':
-            otp = "2222"
+        # if req_body["email"] == 'sirojiddinovsolohiddin961@gmail.com':
+        #     otp = "2222"
 
-        user = get_user_by_username(req_body["username"])
-
+        user = get_user_by_username(req_body["email"])
+        print('user is here')
+        print(user)
+        print(req_body['email'])
         if user is None:
-            user = create_user(req_body["first_name"], req_body["last_name"], req_body["username"])
-
-        user_role = get_user_role_by_username_role_self(req_body["username"], self.role)
+            user = create_user(req_body["email"])
+        print('user is passed -------------------')
+        user_role = get_user_role_by_username_role_self(req_body["email"], self.role)
 
         if user_role is not None:
             if user_role.is_verified: return Response({'error':'user already registered'}, status=status.HTTP_400_BAD_REQUEST)
@@ -35,7 +41,7 @@ class RegisterUser(GenericAPIView):
         else:
             create_user_role(self.role, user.id, otp, req_body["lat"], req_body["long"], datetime.datetime.now())
 
-        # send_result = sms_send(otp, req_body["username"])
+        send_result = send_otp_email(req_body["email"], otp)
         
 
         if not send_result:
@@ -47,14 +53,11 @@ class RegisterUser(GenericAPIView):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email": user.email,
-            "phone": user.phone,
+            "phone_number": user.phone_number,
             "role": self.role,
             "is_verified": False,
             "otp": otp,
-            "lang": user.lang,
-            "lat": req_body["lat"],
-            "long": req_body["long"],
-            "referral_code": req_body["referral_code"]
+            "language": user.language,
         })
 
 
@@ -83,7 +86,7 @@ class VerifyOtp(GenericAPIView):
 
         update_user_role_set_verified(user_role.id, True, True)
 
-        cart_new(user_role.user_id)
+        # cart_new(user_role.user_id)
 
         bonus_amount = BONUS_REFERRAL if user_role.role == "SELLER" else BONUS_NEW_USER
         balance_new(user_role.user_id, user_role.role, bonus_amount)
@@ -97,6 +100,11 @@ class VerifyOtp(GenericAPIView):
             "refresh": str(token),
             "access": str(token.access_token)
         })
+
+
+
+
+
 
 
 

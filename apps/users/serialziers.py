@@ -5,7 +5,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings
 
-from apps.users.models import User, UserRole, UserDevice, UserReferral, ReferralCodes, VersionControl
+from apps.users.models import User, UserRole, UserDevice,VersionControl
 from .repository import exists_user_role_by_userid_role
 
 class AuthenticationSerializer(serializers.Serializer):
@@ -53,14 +53,14 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
     
 
 class RegisterSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True, max_length=150, min_length=5)
+    email = serializers.CharField(required=True, max_length=150, min_length=5)
     password = serializers.CharField(required=True, max_length=150, min_length=5)
     first_name = serializers.CharField(required=False, max_length=150, min_length=1)
-    # lat = serializers.FloatField(required=False)
-    # long = serializers.FloatField(required=False)
+    lat = serializers.FloatField(required=False)
+    long = serializers.FloatField(required=False)
     lang = serializers.CharField(required=False, max_length=2, min_length=2, default="UZ")
 
-    def validate_username(self, value):
+    def validate_email(self, value):
         email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         phone_regex = r'^998\d{9}$'  # Uzbek phone: 998 + 9 digits
 

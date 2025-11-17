@@ -11,15 +11,16 @@ from django.urls import path
 # from apps.users.views import ArenaCreateView, ArenaListView
 # from apps.users.views import OwnerProfileView, OwnerRegisterView
 
-urlpatterns = []
-#     # mock data
-#     # path('mock_data/<int:year>/<int:month>/',MockDataView.as_view(),name='mock_data'),
-#     # path('mock_2/<str:date1>/<str:date2>/',MockTwoMonth.as_view(),name='mock_data_two_months'),
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import VerifyOtp, RegisterUser
 
-#     # path('mock_data/active_students/',MockDataActiveStudents.as_view(),name='mock_data_active_students'),
-#     # path('mock_2_count/<str:date1>/<str:date2>/',MockTwoCount.as_view(),name='mock_data_two_months'),
-#     # path('mock_2_finished/',MockDataFinished.as_view(),name='mock_data_two_months_finished'),
-    
+urlpatterns = [
+    path('auth/token/',TokenObtainPairView.as_view(), name='token'),
+    path('auth/token/refresh/',TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/register/', RegisterUser.as_view(), name='register'),
+    path('auth/verify-otp/', VerifyOtp.as_view(), name='verify_otp'),
+]
+
 #     # owner
 #     path('owner_register/',OwnerRegisterView.as_view(),name='register_owner'),
 #     path('get_owner/',OwnerProfileView.as_view(),name='get_owner'),

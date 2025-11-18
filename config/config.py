@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     DEFAULT_FROM_EMAIL: str
     SERVER_EMAIL: str
     EMAIL_BACKEND: str
+    TELEGRAM_TOKEN: str
+    CHAT_ID: str
+
     
     # some
     TIME_ZONE: str

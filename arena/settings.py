@@ -55,9 +55,11 @@ APPS = [
     'apps.app',
     'apps.posts',
     'apps.shared',
+    'apps.service',
 ]
 
 LIBS = [
+    'parler',
     'drf_yasg',
     'rest_framework',
     'drf_spectacular',

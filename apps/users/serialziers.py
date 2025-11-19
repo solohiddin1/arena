@@ -55,7 +55,10 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
 class RegisterSerializer(serializers.Serializer):
     email = serializers.CharField(required=True, max_length=150, min_length=5)
     password = serializers.CharField(required=True, max_length=150, min_length=5)
-    first_name = serializers.CharField(required=False, max_length=150, min_length=1)
+    first_name = serializers.CharField(required=True, max_length=150, min_length=1)
+    last_name = serializers.CharField(required=True, max_length=150, min_length=1)
+    phone_number = serializers.CharField(required=True, max_length=12, min_length=12)
+    age = serializers.IntegerField(required=True)
     lat = serializers.FloatField(required=False)
     long = serializers.FloatField(required=False)
     lang = serializers.CharField(required=False, max_length=2, min_length=2, default="UZ")

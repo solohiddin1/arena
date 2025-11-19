@@ -8,13 +8,13 @@ class ClientPermission(BasePermission):
         if request.auth is None:
             return False
 
-        if request.auth.get("role") != "CLIENT":
+        if request.auth.get("role") != "USER":
             return False
 
         # Only fetch required fields - don't need user object here
         db_role = UserRole.objects.only('is_active', 'is_verified').filter(
             user=request.user,
-            role="CLIENT"
+            role="USER"
         ).first()
 
         if db_role is None:

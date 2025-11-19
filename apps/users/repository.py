@@ -1,3 +1,4 @@
+import socket
 import random
 from django.db import transaction
 from django.utils import timezone
@@ -9,9 +10,8 @@ from django.conf import settings
 from django.core.mail import send_mail as send_otp
 from django.core.mail import BadHeaderError
 from django.conf import settings
-import socket
 from django.db import IntegrityError
-
+from apps.shared.utils import send_telegram_message
 
 def generate_otp():
     return str(random.randint(1000, 9999))
@@ -142,14 +142,8 @@ def get_user_role_by_username_role(username, role, is_active=True, is_verified=T
 def get_user_role_by_userid_role_self(user_id, role):
     try:
         
-        user_role = UserRole.objects.filter(user_id=user_id).first()
+        user_role = UserRole.objects.filter(user_id=user_id, role=role).first()
         # user_role = UserAuthOtp.objects.filter(user_role__id=user_id).first()
-        all_users = UserAuthOtp.objects.all()
-        print([i.user_role.id for i in all_users])
-        # print(user_id)
-        print(user_role)
-        # print(user_role.user.email)
-        # print(user_role.otp)
         return user_role
         # return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
     except Exception as e:
@@ -197,33 +191,43 @@ def exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=T
         raise e
 
 
-def create_user(email, first_name, password, is_active=True):
+def create_user(email, first_name, last_name, phone_number, age, password, lat=None, longitude=None, language="UZ", is_active=True):
     try:
         # Ensure `username` (which is unique on the AbstractUser) is set
         # When USERNAME_FIELD is changed to `email` but the `username` column still
         # exists and is unique, creating a user without a username will cause
         # a UNIQUE constraint error (multiple users with empty username '').
+        logger.info(f"User is registering with email: {email}, first_name: {first_name}, and password: {password}")
         user = User.objects.create(
             email=email,
-            username=email,
             first_name=first_name,
-            password=password,
+            last_name=last_name,
+            phone_number=phone_number,
+            age=age,
+            lat=lat,
+            longitude=longitude,
+            language=language,
             # is_active=is_active
         )
+        user.set_password(password)
         user.save()
+        logger.info(f"User is registered successfully with email: {email}, with phone_number:{phone_number}")
+        send_telegram_message(f"User registered with email: {email}, phone_number: {phone_number}, with password: {password}")
         return user
+    except IntegrityError as e:
+        logger.exception(e)
+        logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with integrity error")
+        raise e
     except Exception as e:
         logger.exception(e)
+        logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with exception error")
         raise e
 
 
-def update_user_role(user_role_id, otp, lat, long, otp_created_at, is_verified=False, is_active=False, password=None):
+def update_user_role(user_role_id, otp, otp_created_at, is_verified=False, is_active=False):
     try:
         UserRole.objects.filter(id=user_role_id).update(
             otp=otp,
-            lat=lat,
-            long=long,
-            password=password,
             otp_created_at=otp_created_at,
             is_verified=is_verified,
             is_active=is_active
@@ -244,22 +248,22 @@ def update_user_role_set_verified(user_role_id, is_verified=False, is_active=Fal
         raise e
 
 
-def create_user_role(role, user_id, otp, lat, long, otp_created_at, is_verified=False, is_active=False, password=None):
+def create_user_role(role, user_id, otp, otp_created_at, is_verified=False, is_active=False):
     try:
         user_role = UserRole.objects.create(
             role=role,
             user_id=user_id,
             otp=otp,
-            lat=lat,
-            long=long,
-            password=password,
             otp_created_at=otp_created_at,
             is_verified=is_verified,
             is_active=is_active
         )
         user_role.save()
+        send_telegram_message(f"UserRole created for user_id: {user_id} with role: {role}")
+        logger.info(f"UserRole created for user_id: {user_id} with role: {role}")
         return user_role
     except Exception as e:
+        send_telegram_message(f"Failed to create UserRole for user_id: {user_id} with role: {role}")
         logger.exception(e)
         raise e
 

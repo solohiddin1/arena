@@ -17,7 +17,7 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(UserRole)
 class UserRoleAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'role', 'is_active', 'is_verified']
+    list_display = ['id', 'user', 'role', 'is_verified']
     search_fields = ['user__email', 'user__phone_number', 'user__email']
 
 

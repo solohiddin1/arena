@@ -31,14 +31,17 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'))
     phone_number = models.CharField(max_length=12, unique=True, blank=True, null=True)
     language = models.CharField(choices=LANG_CHOICES, max_length=2, default='UZ', verbose_name=_('lang'))
-
+    lat = models.FloatField(null=True, blank=True, verbose_name=_("lat"))
+    longitude = models.FloatField(null=True, blank=True, verbose_name=_("long"))
+    password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
+    age = models.IntegerField(null=True, blank=True, verbose_name=_("age"))
     objects = MyUserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.username if self.username else self.email
+        return self.email or self.username or f"{self.id}"
 
     # @property
     # def is_superuser(self):
@@ -53,11 +56,8 @@ class UserRole(BaseModel):
     )
     user = models.ForeignKey(User, verbose_name=_('userrole'), on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, verbose_name=_('role'))
-    lat = models.FloatField(null=True, blank=True, verbose_name=_('lat'))
-    long = models.FloatField(null=True, blank=True, verbose_name=_('long'))
-    password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
-    is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
     is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
+    is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
     otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
     otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
 

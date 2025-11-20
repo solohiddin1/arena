@@ -131,7 +131,7 @@ class ApiAuthOtpSend(GenericAPIView):
             serializer.validated_data["email"],
             serializer.validated_data["role"]
         )
-        print(user_role.role)
+        # print(user_role.role)
 
         if not user_role: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
         print('------')

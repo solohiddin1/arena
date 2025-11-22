@@ -138,3 +138,17 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class UserSetLocation(serializers.Serializer):
     lat = serializers.FloatField(required=True)
     longitude = serializers.FloatField(required=True)
+
+
+class OtpForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.CharField(required=True, max_length=150)
+
+
+class VerifyForgotPasswordSerializer(serializers.Serializer):
+    reset_id = serializers.IntegerField(required=True)
+    code = serializers.CharField(required=True, max_length=5)
+
+
+class ApplyNewPasswordSerializer(serializers.Serializer):
+    reset_token = serializers.CharField(required=True, max_length=255)
+    password = serializers.CharField(required=True, max_length=255)

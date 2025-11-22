@@ -53,30 +53,37 @@ def send_otp_email(email, otp_code):
 
 
 
-# def check_generate_otp(user_role: UserRole):
-#     new_code = str(random.randint(1000, 9999))
+def check_generate_otp(user: User):
+    new_code = str(random.randint(1000, 9999))
 
-#     today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=1)
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=1)
 
-#     otp = UserPasswordReset.objects.select_related('user_role__user').filter(user_role=user_role).first()
+    otp = UserPasswordReset.objects.select_related('user').filter(user=user).first()
 
-#     if otp:
-#         # Only count - no need for select_related
-#         sent_count = OtpSentLog.objects.filter(email=user_role.user.email, created_at__gte=today_start).count()
+    if otp:
+        # Only count - no need for select_related
+        sent_count = OtpSentLog.objects.filter(email=user.email, created_at__gte=today_start).count()
+        if sent_count >= 5:
+            return None
 
-#         if sent_count >= 5:
-#             return None
+        otp.code = new_code
+        otp.incorrect_count = 0
+        otp.otp_created_at = timezone.now()
+        otp.otp_count += 1
+        otp.verified = False
+    else:
+        otp = UserPasswordReset.objects.create(user=user, code=new_code, otp_created_at=timezone.now(), otp_count=1, verified=False)
 
-#         otp.code = new_code
-#         otp.incorrect_count = 0
-#         otp.otp_created_at = timezone.now()
-#         otp.otp_count += 1
-#         otp.verified = False
-#     else:
-#         otp = UserPasswordReset.objects.create(user_role=user_role, code=new_code, otp_created_at=timezone.now(), otp_count=1, verified=False)
+    otp.save()
+    return otp
 
-#     otp.save()
-#     return otp
+
+def get_user_password_reset_by_id(reset_id):
+    try:
+        return UserPasswordReset.objects.select_related('user').filter(id=reset_id).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
 
 
 
@@ -240,7 +247,6 @@ def create_user(email, first_name, last_name, phone_number, age,
 #     except Exception as e:
 #         logger.exception(e)
 #         raise e
-
 
 def update_user_set_verified(user_id, is_verified=True, is_active=True):
     try:

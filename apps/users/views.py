@@ -18,9 +18,9 @@ from apps.shared.utils import SuccessResponse
 from apps.shared.utils import send_telegram_message, get_logger
 
 from .repository import *
-from .serialziers import (RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer, UserSetLocation, UserUpdateSerializer, 
+from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerializer, RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer, UserSetLocation, UserUpdateSerializer, 
                             UserVerifySerializer, AuthOtpSendSerializer, 
-                            AuthOtpVerifySerializer, UserProfileSerializer)
+                            AuthOtpVerifySerializer, UserProfileSerializer, VerifyForgotPasswordSerializer)
 
 logger = get_logger()
 
@@ -240,3 +240,89 @@ class UserLocationUpdate(generics.CreateAPIView):
                                   serializer.validated_data.get("longitude"))
 
         return SuccessResponse({"message": "Location updated"})
+
+class OtpForgotPassword(GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = OtpForgotPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = get_user_by_username(
+            serializer.validated_data["email"],
+        )
+
+        if not user:
+            return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
+
+        otp = check_generate_otp(user)
+
+        if not otp: return ErrorResponse(ResultCodes.DAILY_LIMIT_REACHED)
+
+        sms_res = send_otp_email(serializer.validated_data["email"], otp.code)
+        if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
+
+        return SuccessResponse({
+            "reset_id": otp.id,
+            "otp": otp.code,
+            "message": "Email sent successfully!!!"
+        })
+
+
+class VerifyForgotPassword(GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = VerifyForgotPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        otp_ = get_user_password_reset_by_id(serializer.validated_data['reset_id'])
+        if not otp_: return ErrorResponse(ResultCodes.UNKNOWN_ERROR)
+
+        if otp_.verified: return ErrorResponse(ResultCodes.ALREADY_VERIFIED)
+
+        if otp_.incorrect_count >= 3: return ErrorResponse(ResultCodes.OTP_INCORRECT_CNT)
+
+        if timezone.now() - otp_.otp_created_at > datetime.timedelta(minutes=3): return ErrorResponse(
+            ResultCodes.OTP_EXPIRED)
+
+        if otp_.code != serializer.validated_data['code']:
+            update_user_password_reset_incorrect_count(otp_)
+            return ErrorResponse(ResultCodes.OTP_INCORRECT)
+
+        reset_token = uuid.uuid4()
+        update_user_password_reset_verified(otp_, reset_token)
+
+        return SuccessResponse({
+            "reset_token": reset_token,
+            "message": "Verification success!!!"
+        })
+
+
+class ApplyNewPassword(GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = ApplyNewPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        otp_ = get_user_password_reset_by_token(serializer.validated_data['reset_token'])
+        if not otp_: return ErrorResponse(ResultCodes.INVALID_RESET_TOKEN)
+
+        if not otp_.verified: return ErrorResponse(ResultCodes.ALREADY_VERIFIED)
+
+        if timezone.now() - otp_.reset_token_created_at > datetime.timedelta(minutes=15): return ErrorResponse(
+            ResultCodes.OTP_EXPIRED)
+
+        # Update password
+        user_role = get_user_role_by_id(otp_.user_role.id)
+        update_user_role_password(user_role, make_password(serializer.validated_data['password']))
+
+        clear_user_password_reset_token(otp_)
+
+        return SuccessResponse({
+            "message": "Successfully set new password!!!"
+        })

@@ -14,7 +14,8 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (LoginUser, UserProfileView, UserUpdate, 
                     UserUpdateProfileImage, UserUpdateProfileImage, 
-                    VerifyOtp, RegisterUser, UserLocationUpdate)
+                    VerifyOtp, RegisterUser, UserLocationUpdate,
+                    ApplyNewPassword, OtpForgotPassword, VerifyForgotPassword)
 
 urlpatterns = [
     # path('auth/token/',TokenObtainPairView.as_view(), name='token'),
@@ -30,6 +31,12 @@ urlpatterns = [
     path('get-profile/', UserProfileView.as_view(), name='get_profile'),
     path('profile-image-update/', UserUpdateProfileImage.as_view(), name='profile_image_update'),
     path('profile-update/', UserUpdate.as_view(), name='profile_update'),
+
+    # password
+    path("otp-forgot-password/", OtpForgotPassword.as_view(), name="otp_forgot_password"),
+    path("verify-forgot-password/", VerifyForgotPassword.as_view(), name="verify_forgot_password"),
+    path("password-reset/", ApplyNewPassword.as_view(), name="password_reset"),
+
 
     path('profile-location-update/', UserLocationUpdate.as_view(), name='profile_location_update'),
 

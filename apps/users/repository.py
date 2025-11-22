@@ -86,6 +86,14 @@ def get_user_password_reset_by_id(reset_id):
         raise e
 
 
+def get_user_password_reset_by_token(reset_token):
+    try:
+        return UserPasswordReset.objects.select_related('user').filter(reset_token=reset_token).first()
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
 
 # def check_generate_auth_otp(user_role: UserRole):
 #     new_code = str(random.randint(1000, 9999))

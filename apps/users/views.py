@@ -4,6 +4,7 @@ import datetime
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django.contrib.auth import authenticate
 from django.db import transaction
+from django.contrib.auth.hashers import make_password
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -318,7 +319,7 @@ class ApplyNewPassword(GenericAPIView):
             ResultCodes.OTP_EXPIRED)
 
         # Update password
-        user_role = get_user_role_by_id(otp_.user_role.id)
+        user_role = get_user_by_username(otp_.user.email)
         update_user_role_password(user_role, make_password(serializer.validated_data['password']))
 
         clear_user_password_reset_token(otp_)

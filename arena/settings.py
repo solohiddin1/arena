@@ -147,9 +147,9 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Arena API',
+    'TITLE': 'API',
     'VERSION': '1.0.0',
-    'DESCRIPTION': 'Here is Arena API endpoints documentation',
+    'DESCRIPTION': 'Here is API endpoints documentation',
     'SERVE_INCLUDE_SCHEMA': False,
     # "ENUM_NAME_OVERRIDES": {
     #     "apps.order.models.Order.state": "OrderStateEnum",

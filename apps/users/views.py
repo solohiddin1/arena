@@ -1,6 +1,6 @@
 import uuid
 import datetime
-
+import concurrent.futures
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django.contrib.auth import authenticate
 from django.db import transaction
@@ -67,20 +67,26 @@ class RegisterUser(GenericAPIView):
             update_user_otp(user.id, otp, timezone.now())
 
         # send_result = send_otp_email(req_body["email"], otp)
-        def send_otp(email, otp):
-            try:
-                # Try primary provider
-                send_result = send_otp_email(email, otp)
-                return send_result
-            except Exception as e:
-                logger.info(f"Primary provider failed: {e}")
+        def send_otp(email, otp, timeout=5):
+            def try_send():
                 try:
-                    # Fallback to secondary provider
-                    send_result = send_email_from_server_from_brevo(email, otp)
-                    return send_result
-                except Exception as e2:
-                    logger.info(f"Both providers failed: {e2}")
-                    raise Exception("Unable to send OTP")
+                    # Primary provider
+                    return send_email_from_server_from_brevo(email, otp)
+                except Exception as e:
+                    logger.info(f"Primary provider failed: {e}")
+                    try:
+                        return send_otp_email(email, otp)
+                        # Fallback
+                    except Exception as e2:
+                        logger.info(f"Both providers failed: {e2}")
+                        raise Exception("Unable to send OTP")
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(try_send)
+                try:
+                    return future.result(timeout=timeout)  # seconds
+                except concurrent.futures.TimeoutError:
+                    raise Exception("OTP sending timed out")
 
         send_result = send_otp(req_body["email"], otp)
 

@@ -17,6 +17,7 @@ from apps.shared.enum import ResultCodes
 from apps.shared.utils import ErrorResponse
 from apps.shared.utils import SuccessResponse
 from apps.shared.utils import send_telegram_message, get_logger
+from apps.shared.send_email import send_email_from_server_from_brevo
 
 from .repository import *
 from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerializer, RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer, UserSetLocation, UserUpdateSerializer, 
@@ -65,8 +66,23 @@ class RegisterUser(GenericAPIView):
                 return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
             update_user_otp(user.id, otp, timezone.now())
 
-        send_result = send_otp_email(req_body["email"], otp)
-        
+        # send_result = send_otp_email(req_body["email"], otp)
+        def send_otp(email, otp):
+            try:
+                # Try primary provider
+                send_result = send_otp_email(email, otp)
+                return send_result
+            except Exception as e:
+                logger.info(f"Primary provider failed: {e}")
+                try:
+                    # Fallback to secondary provider
+                    send_result = send_email_from_server_from_brevo(email, otp)
+                    return send_result
+                except Exception as e2:
+                    logger.info(f"Both providers failed: {e2}")
+                    raise Exception("Unable to send OTP")
+
+        send_result = send_otp(req_body["email"], otp)
 
         if not send_result:
             return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)

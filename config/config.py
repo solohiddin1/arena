@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     EMAIL_BACKEND: str
     TELEGRAM_TOKEN: str
     CHAT_ID: str
+    BREVO_EMAIL_API_KEY: str
+    BREVO_EMAIL_API_EMAIL: str
 
     
     # some

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, UserRole, UserAuthOtp , UserDevice, VersionControl, OtpSentLog
+from .models import User, UserAuthOtp , UserDevice, VersionControl, OtpSentLog
 from django.utils.html import format_html
 
 # Register your models here.
@@ -15,14 +15,8 @@ class UserAdmin(admin.ModelAdmin):
         return "-"
 
 
-@admin.register(UserRole)
-class UserRoleAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'role', 'is_verified']
-    search_fields = ['user__email', 'user__phone_number', 'user__email']
-
-
 @admin.register(UserDevice)
-class Admin(admin.ModelAdmin):
+class UserDeviceAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'role', 'device_id', 'device_type']
 
 
@@ -33,7 +27,7 @@ class VersionControlAdmin(admin.ModelAdmin):
 
 @admin.register(UserAuthOtp)
 class UserAuthOtpAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user_role', 'code', 'is_used', 'incorrect_count', 'verified']
+    list_display = ['id', 'user', 'code', 'is_used', 'incorrect_count', 'verified']
 
 
 @admin.register(OtpSentLog)

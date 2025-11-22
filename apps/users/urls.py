@@ -12,20 +12,26 @@ from django.urls import path
 # from apps.users.views import OwnerProfileView, OwnerRegisterView
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import ApiAuthOtpVerify, VerifyOtp, RegisterUser, ApiAuthOtpSend
+from .views import (LoginUser, UserProfileView, UserUpdate, 
+                    UserUpdateProfileImage, UserUpdateProfileImage, 
+                    VerifyOtp, RegisterUser, UserLocationUpdate)
 
 urlpatterns = [
     # path('auth/token/',TokenObtainPairView.as_view(), name='token'),
     # path('auth/token/refresh/',TokenRefreshView.as_view(), name='token_refresh'),
 
-    # before login
+    # register
     path('auth/register/', RegisterUser.as_view(), name='register'),
     path('auth/verify-otp/', VerifyOtp.as_view(), name='verify_otp'),
 
-    
-    # after login
-    path('auth/otp/2/', ApiAuthOtpSend.as_view(), name='auth2_otp'),
-    path('auth/2/verify/', ApiAuthOtpVerify.as_view(), name='verify'),
+    # login
+    path('auth/login/', LoginUser.as_view(), name='login'),
+
+    path('get-profile/', UserProfileView.as_view(), name='get_profile'),
+    path('profile-image-update/', UserUpdateProfileImage.as_view(), name='profile_image_update'),
+    path('profile-update/', UserUpdate.as_view(), name='profile_update'),
+
+    path('profile-location-update/', UserLocationUpdate.as_view(), name='profile_location_update'),
 
 ]
 

@@ -6,3 +6,4 @@ migrations/
 .vscode
 logs/
 *.log
+media/

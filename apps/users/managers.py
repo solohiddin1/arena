@@ -21,11 +21,7 @@ class MyUserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        from apps.users.models import UserRole
         user = self.create_user(email, password, **extra_fields)
-
-        # Give superuser default ADMIN role
-        UserRole.objects.get_or_create(user=user, role="ADMIN")
 
         return user
 

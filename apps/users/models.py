@@ -22,51 +22,38 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
         ('RU', 'RU'),
         ('UZ', 'UZ')
     )
-    # phone_regex = RegexValidator(
-    #     regex=r'^\+998\d{9}$',
-    #     message="Telefon raqam '+998XXXXXXXXX' formatida bo'lishi kerak!"
-    # )
-    name = models.CharField(max_length=255,null=True)
-    email = models.EmailField(unique=True, default=None,blank=True,null=True)
+    phone_regex = RegexValidator(
+        regex=r'^998\d{9}$',
+        message="Telefon raqam '998XXXXXXXXX' formatida bo'lishi kerak!"
+    )
+
+    first_name = models.CharField(max_length=255,null=True)
+    last_name = models.CharField(max_length=255,null=True)
+    email = models.EmailField(unique=True, default=None)
+    phone_number = models.CharField(max_length=12, unique=True, blank=True, null=True, validators=[phone_regex], verbose_name=_('phone_number'))
     image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'))
-    phone_number = models.CharField(max_length=12, unique=True, blank=True, null=True)
     language = models.CharField(choices=LANG_CHOICES, max_length=2, default='UZ', verbose_name=_('lang'))
+    password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
     lat = models.FloatField(null=True, blank=True, verbose_name=_("lat"))
     longitude = models.FloatField(null=True, blank=True, verbose_name=_("long"))
-    password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
-    age = models.IntegerField(null=True, blank=True, verbose_name=_("age"))
+    age = models.PositiveIntegerField(null=True, blank=True, verbose_name=_("age"))
+    is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
+    is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
+    otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
+    otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
+
     objects = MyUserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.email or self.username or f"{self.id}"
+        return self.email or self.phone_number or f"{self.id}"
 
-    # @property
-    # def is_superuser(self):
-    #     return self.is_admin
-
-
-class UserRole(BaseModel):
-    ROLE_CHOICES = (
-        ('ADMIN', 'ADMIN'),
-        ('SELLER', 'SELLER'),
-        ('USER', 'USER')
-    )
-    user = models.ForeignKey(User, verbose_name=_('userrole'), on_delete=models.CASCADE)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, verbose_name=_('role'))
-    is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
-    is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
-    otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
-    otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
-
-    class Meta:
-        unique_together=('user', 'role')
 
 
 class UserAuthOtp(BaseModel):
-    user_role = models.OneToOneField(UserRole, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
     # user = models.ForeignKey(User, verbose_name=_('userotp'), on_delete=models.CASCADE)
     code = models.IntegerField()
     otp_created_at = models.DateTimeField(blank=True, null=True)
@@ -110,13 +97,18 @@ class UserDevice(BaseModel):
 
 
 class OtpSentLog(BaseModel):
-    email = models.CharField(max_length=12, verbose_name=_("email"))
+    email = models.CharField(max_length=12, verbose_name=_("email"), blank=True, null=True)
     message_id = models.CharField(max_length=17, verbose_name=_("message_id"))
     otp = models.CharField(max_length=4, null=True, blank=True, verbose_name=_("otp"))
 
+    class Meta:
+        indexes = [
+            # CRITICAL: Used for rate limiting - count OTPs sent today per phone
+            models.Index(fields=['email', 'created_at'], name='otp_log_email_created_idx'),
+        ]
 
 class UserPasswordReset(BaseModel):
-    user_role = models.OneToOneField(UserRole, models.CASCADE)  # OneToOneField auto-creates unique index
+    user = models.OneToOneField(User, models.CASCADE, blank=True, null=True)  # OneToOneField auto-creates unique index
     reset_token = models.UUIDField(editable=True, null=True, blank=True, unique=True)  # unique=True auto-creates index
     reset_token_created_at = models.DateTimeField(null=True, blank=True)
     code = models.CharField(max_length=4, null=True, blank=True)
@@ -124,15 +116,3 @@ class UserPasswordReset(BaseModel):
     incorrect_count = models.IntegerField(default=0)
     otp_count = models.IntegerField(default=0)
     verified = models.BooleanField(default=False)
-
-
-class OtpSentLog(BaseModel):
-    email = models.CharField(null=True,max_length=12)
-    message_id = models.CharField(max_length=17)
-    otp = models.CharField(max_length=4, null=True, blank=True)
-
-    class Meta:
-        indexes = [
-            # CRITICAL: Used for rate limiting - count OTPs sent today per phone
-            models.Index(fields=['email', 'created_at'], name='otp_log_email_created_idx'),
-        ]

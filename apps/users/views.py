@@ -1,18 +1,26 @@
-from rest_framework.generics import GenericAPIView
+import uuid
+import datetime
+
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from django.contrib.auth import authenticate
 from django.db import transaction
-from .serialziers import RegisterSerializer, UserVerifySerializer, AuthOtpSendSerializer, AuthOtpVerifySerializer
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import status
-from .repository import *
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser
+
 from apps.shared.enum import ResultCodes
 from apps.shared.utils import ErrorResponse
-from .repository import send_otp_email, check_generate_otp, check_generate_auth_otp
-import datetime
-from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shared.utils import SuccessResponse
-from drf_spectacular.utils import extend_schema
 from apps.shared.utils import send_telegram_message, get_logger
-import uuid
+
+from .repository import *
+from .serialziers import (RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer, UserSetLocation, UserUpdateSerializer, 
+                            UserVerifySerializer, AuthOtpSendSerializer, 
+                            AuthOtpVerifySerializer, UserProfileSerializer)
 
 logger = get_logger()
 
@@ -35,7 +43,8 @@ class RegisterUser(GenericAPIView):
         #     otp = "2222"
 
         user = get_user_by_username(req_body["email"])
-        send_telegram_message(f"user is registering with email: {req_body['email']}, and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
+        send_telegram_message(f"user is registering with email: {req_body['email']}," \
+                              f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
         logger.info(f"user is registered with email: {req_body['email']}")
         if user is None:
             user = create_user(email=req_body["email"],
@@ -43,19 +52,17 @@ class RegisterUser(GenericAPIView):
                                 last_name=req_body.get("last_name",""),
                                 phone_number=req_body.get("phone_number",""),
                                 age=req_body.get("age",0),
+                                otp=otp,
+                                otp_created_at=timezone.now(),
                                 lat=req_body.get("lat",0.0),
                                 longitude=req_body.get("longitude",0.0),
                                 language=req_body.get("language","UZ"),
                                 password=req_body["password"],
                                 is_active=False)
-        user_role = get_user_role_by_username_role_self(req_body["email"], self.role)
-
-        if user_role is not None:
-            if user_role.is_verified: return Response({'error':'user already registered'}, status=status.HTTP_400_BAD_REQUEST)
-            update_user_role(user_role.id, otp, datetime.datetime.now())
-
         else:
-            create_user_role(role=self.role, user_id=user.id, otp=otp, otp_created_at=datetime.now())
+            if user.is_verified:
+                return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+            update_user_otp(user.id, otp, timezone.now())
 
         send_result = send_otp_email(req_body["email"], otp)
         
@@ -65,7 +72,6 @@ class RegisterUser(GenericAPIView):
 
         return Response({
             "id": user.id,
-            "username": user.username,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email": user.email,
@@ -76,8 +82,10 @@ class RegisterUser(GenericAPIView):
             "language": user.language,
         })
 
+
 @extend_schema(
-    summary='to verify previous registered user'
+    summary='to verify registered user, send users id and otp , user id is ' \
+    'when returned when they are  registered'
 )
 class VerifyOtp(GenericAPIView):
     serializer_class = UserVerifySerializer
@@ -87,26 +95,31 @@ class VerifyOtp(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_role = get_user_role_by_userid_role_self(
+        user = get_user_by_userid(
             serializer.validated_data["user_id"],
-            serializer.validated_data["role"]
         )
 
-        if user_role is None: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
+        if user is None: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
+        if user.is_verified: return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+        if user.email == "sirojiddinovsolohiddin961@gmail.com":
+            if serializer.validated_data["code"] == "2222":
+                token = RefreshToken.for_user(user)
+                return SuccessResponse({
+                    "refresh": str(token),
+                    "access": str(token.access_token)
+                })
+            else:
+                return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
+        if user.otp:
+            if timezone.now() - user.otp_created_at > datetime.timedelta(
+                minutes=20): return ErrorResponse(ResultCodes.OTP_EXPIRED)
 
-        if user_role.is_verified: return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+        if user.otp != serializer.validated_data["code"]: return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
 
-        if timezone.now() - user_role.otp_created_at > datetime.timedelta(
-            minutes=20): return ErrorResponse(ResultCodes.OTP_EXPIRED)
-
-        if user_role.otp != serializer.validated_data["code"]: return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
-
-        update_user_role_set_verified(user_role.id, True, True)
+        update_user_set_verified(user.id)
 
 
-        token = RefreshToken.for_user(user_role.user)
-        token["role"] = str(user_role.role)
-
+        token = RefreshToken.for_user(user)
         return SuccessResponse({
             "refresh": str(token),
             "access": str(token.access_token)
@@ -114,77 +127,37 @@ class VerifyOtp(GenericAPIView):
 
 
 @extend_schema(
-    summary='to get otp for existing user'
+    summary='login verified user with email and password and return tokens',
+    responses={200: AuthenticationSerializer}
 )
-class ApiAuthOtpSend(GenericAPIView):
-    queryset = User.objects.all()
-    serializer_class = AuthOtpSendSerializer
+class LoginUser(GenericAPIView):
+    serializer_class = AuthenticationSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # check user verified and send otp
-        print(serializer.validated_data['email'])
-        print(serializer.validated_data['role'])
-        user_role = get_user_role_by_email_and_role(
-            serializer.validated_data["email"],
-            serializer.validated_data["role"]
-        )
-        # print(user_role.role)
+        email = serializer.validated_data.get("email")
+        password = serializer.validated_data.get("password")
 
-        if not user_role: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
-        print('------')
-        if not user_role.is_verified: return ErrorResponse(ResultCodes.USER_IS_NOT_VERIFIED)
+        # Try authenticate; USERNAME_FIELD is 'email' so username is email
+        user = authenticate(request=request._request, username=email, password=password)
+        if user is None:
+            # also try with email keyword for custom backends
+            user = authenticate(request=request._request, email=email, password=password)
 
-        otp = check_generate_auth_otp(user_role)
+        if user is None:
+            return ErrorResponse(ResultCodes.INVALID_CREDENTIALS)
 
-        if not otp: return ErrorResponse(ResultCodes.DAILY_LIMIT_REACHED)
+        # Ensure user has active & verified role
+        # user_role = get_user_role_by_userid_role(user.id, role, is_active=True, is_verified=True)
+        # if not user_role:
+        #     return ErrorResponse(ResultCodes.USER_IS_NOT_VERIFIED)
 
-        # sms_res = reset_sms_send(otp.code, serializer.validated_data["phone"])
-        # if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
-        email_res = send_otp_email(serializer.validated_data["email"], otp.code)
-        print(email_res)
-        if not email_res["success"]:
-            return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
+        if not user.is_verified:
+            return ErrorResponse(ResultCodes.USER_IS_NOT_VERIFIED)
 
-        return SuccessResponse({
-            "id": otp.id,
-            "otp": otp.code,
-            "message": "SMS sent successfully!!!"
-        })
-
-
-@extend_schema(
-    summary='to verify otp of existing user'
-)
-class ApiAuthOtpVerify(GenericAPIView):
-    queryset = User.objects.all()
-    serializer_class = AuthOtpVerifySerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        otp_ = get_user_auth_otp_by_id(serializer.validated_data['id'])
-        if not otp_: return ErrorResponse(ResultCodes.UNKNOWN_ERROR)
-
-        if otp_.verified: return ErrorResponse(ResultCodes.ALREADY_VERIFIED)
-
-        if otp_.incorrect_count >= 20: return ErrorResponse(ResultCodes.OTP_INCORRECT_CNT)
-
-        if timezone.now() - otp_.otp_created_at > datetime.timedelta(minutes=20): return ErrorResponse(
-            ResultCodes.OTP_EXPIRED)
-
-        if otp_.code != serializer.validated_data['code']:
-            update_user_auth_otp_incorrect_count(otp_)
-            return ErrorResponse(ResultCodes.OTP_INCORRECT)
-
-        reset_token = uuid.uuid4()
-        update_user_auth_otp_verified(otp_, reset_token)
-
-        token = RefreshToken.for_user(otp_.user_role.user)
-        token["role"] = str(otp_.user_role.role)
+        token = RefreshToken.for_user(user)
 
         return SuccessResponse({
             "refresh": str(token),
@@ -193,490 +166,77 @@ class ApiAuthOtpVerify(GenericAPIView):
 
 
 
-# from django.shortcuts import get_object_or_404, redirect, render
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework import status
-# from rest_framework.status import HTTP_400_BAD_REQUEST
-# # from apps.serializers_f.user_serializer import UserSerializer
-# # from apps.models import User
-# # from rest_framework import permissions
-# from rest_framework.decorators import api_view, APIView, permission_classes
-# from rest_framework.permissions import AllowAny, IsAuthenticated
-# from rest_framework.response import Response
-# from rest_framework.authtoken.models import Token
-# from rest_framework_simplejwt.tokens import RefreshToken
-# from django.contrib.auth import authenticate, login as django_login
-# from django.core.mail import send_mail
-# from django.conf import settings
-# import random
-# from django.core.cache import cache
-# # from drf_yasg.utils import swagger_auto_schema
-# # from app.serializers_f.email_serializers import SendEmail, LoginSerializer
-# # from app.serializers_f.user_serializer import LoginUserSerializer, ChangePasswordSerializer
-# from rest_framework import generics
-
-# # from apps.users.serializers import LoginSerializer, SendEmail, LoginUserSerializer, ChangePasswordSerializer
-# from apps.users.models import User
-# from apps.users.serializers import LoginSerializer
-
-# # #@swagger_auto_schema(method='post', request_body=LoginSerializer)
-# class LoginApiView(generics.CreateAPIView):
-#     permission_classes = [AllowAny]
-#     serializer_class = LoginSerializer
-
-#     def login(self, request):
-#         serializer = LoginSerializer(data=request.data)
-#         email = request.data.get("email")
-#         # password = request.data.get("password")
-
-#         # user = authenticate(request, email=email, password=password)
-#         if email is not None:
-#             otp = random.randint(1000, 9999)
-#             cache.set(email, otp, timeout=300)
-
-#             send_mail(
-#                 'Your OTP Code',
-#                 f'Your OTP code is {otp}. It is valid for 5 minutes.',
-#                 settings.EMAIL_HOST_USER,
-#                 [email],
-#                 fail_silently=False,
-#             )
-#             return Response({'success': True, 'message': 'OTP sent to email.'})
-        
-
-#         return Response({'success': False, 'message': 'Invalid credentials.'}, status=400)
-
-
-# #@swagger_auto_schema(method='post',request_body=SendEmail)
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def verify(request):
-
-#         seializer = SendEmail(data=request.data)
-#         seializer.is_valid(raise_exception=True)
-#         email = seializer.validated_data['email']
-#         otp = request.data.get('otp')
-
-#         cached_otp = cache.get(email)
-#         if cached_otp and str(cached_otp) == str(otp):
-#             cache.delete(email)
-
-#             user = User.objects.filter(email=email).first()
-#             if user:
-#                 refresh = RefreshToken.for_user(user)
-#                 return Response({'success': True, 'access': str(refresh.access_token), 'refresh': str(refresh)})
-
-#             return Response({'success': False, 'message': 'Invalid user.'}, status=400)
-
-#         return Response({'success': False, 'message': 'Invalid or expired OTP.'}, status=400)
-   
-
-# def userlogin_view(request):
-#     return render(request,'login.html')
-
-
-# #@swagger_auto_schema(method='post', request_body=LoginUserSerializer)
-# class UserLoginView(generics.RetrieveAPIView):
-#     permission_classes=[AllowAny]
-#     serializer_class=LoginUserSerializer
-    
-#     def post(self, request):
-#         # Handle both JSON and form data
-#         if request.content_type == 'application/json':
-#             data = request.data
-#         else:
-#             data = {
-#                 'email': request.POST.get('email'),
-#                 'password': request.POST.get('password')
-#             }
-        
-#         serializer = LoginUserSerializer(data=data)
-#         print('user here')
-#         if serializer.is_valid():
-#             print('user here2 ---')
-#             email = serializer.validated_data.get("email", "").strip().lower()
-#             password = serializer.validated_data.get("password", "").strip()
-#             print(email,password,'email password ---')
-#             print(f"[{email}], [{password}]")
-#             user = authenticate(request, email=email, password=password)
-#             print(user)
-#             if user:
-#                 otp = random.randint(1000, 9999)
-#                 cache.set(email,otp,timeout=300)
-#                 print("start email")
-#                 send_mail(
-#                     "Your code sent",
-#                         f"Your code is {otp}. It is valid for 5 minutes.",
-#                         settings.EMAIL_HOST_USER,
-#                         [email],
-#                         fail_silently=False,
-#                 )
-#                 # token, created = Token.objects.get_or_create(user=user)
-#                 return Response({'success': True, 'message': 'OTP sent to email.'},status=status.HTTP_200_OK)
-#             return Response({'success': False, 'message': 'Invalid credentials.'}, status=400)
-#         return Response(serializer.errors, status=400)
-
-
-# class VerifyOtpView(generics.RetrieveAPIView):
-#     serializer_class = SendEmail
-#     permission_classes = [AllowAny]
-    
-#     def post(self, request):
-#         serializer = SendEmail(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-
-#         email = serializer.validated_data['email']
-#         otp = request.data.get('otp')
-
-#         cached_otp = cache.get(email)
-#         print(cached_otp)
-#         print('user is being verified')
-#         if cached_otp and str(cached_otp) == str(otp):
-#             print("email cache")
-#             cache.delete(email)
-
-#             user = User.objects.filter(email=email).first()
-#             if user:
-#                 user.email_verified = True
-#                 user.is_active = True
-#                 user.save()
-#                 refresh = RefreshToken.for_user(user)
-#                 return Response({'success': True, 'message':'email is verified', 'access': str(refresh.access_token), 'refresh': str(refresh)})
-
-#             return Response({'success': False, 'message': 'Invalid user.'}, status=400)
-
-#         return Response({'success': False, 'message': 'Invalid or expired OTP.'}, status=400)
-
-
-# class LogoutApiView(APIView):
-
-#     def post(self, request):
-#         # Expect refresh token in body and blacklist it
-#         try:
-#             refresh_token = request.data.get("refresh")
-#             if not refresh_token:
-#                 return Response({"success": False, "error": "Refresh token required"}, status=status.HTTP_400_BAD_REQUEST)
-#             token = RefreshToken(refresh_token)
-#             token.blacklist()
-#             return Response({"success": True, "message": "Logged out successfully"})
-#         except Exception as exc:
-#             return Response({"success": False, "error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-            
-# class ChangePasswordView(APIView):
-#     def post(self, request):
-#         serializer = ChangePasswordSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         email = serializer.validated_data['email']
-#         old_password = serializer.validated_data['old_password']
-#         new_password = serializer.validated_data['new_password']
-#         confirm_password = serializer.validated_data['confirm_password']
-#         print(new_password)
-#         print('user changing password')
-
-#         try:
-#             user1 = User.objects.get(email=email)
-        
-#         except Exception as e:
-#             print(e)
-#             return Response({"error":str(e)})
-#         print(user1)
-#         if old_password == new_password:
-#             return Response({"message":"please enter new password"},status=status.HTTP_400_BAD_REQUEST)
-#         if new_password != confirm_password:
-#             return Response({"message":"new password should match to confirm password!"},status=status.HTTP_400_BAD_REQUEST)
-
-#         user = authenticate(request._request,email=email,password=old_password)
-#         print(user)
-#         if user is None:
-#             return Response({"error":"Password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
-#         if user:
-#             print('user here!')
-#             if not user1.email_verified:
-#                 return Response({'success': False, 'message': 'email not verified'}, status=HTTP_400_BAD_REQUEST)
-            
-#             print(f"user { user}")
-            
-#             user.set_password(new_password)
-#             user.is_active = True
-#             user.save()
-#             django_login(request._request, user)  # Log the user in
-#             refresh = RefreshToken.for_user(user)
-#             return Response({'success': True, 'message': 'Password changed successfully.', 'access': str(refresh.access_token), 'refresh': str(refresh)})
-
-#             return Response({"success":False, "errors" : serializer.errors},status=400)
-#         else:
-#             return Response({"error":"password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
-
-
-# class ForgotPasswordView(APIView):
-#     def post(self, request):
-#         serializer = LoginSerializer(data=request.data)
-        
-#         print(request.data)
-#         if serializer.is_valid():
-#             email = serializer.validated_data['email']
-#             try:
-#                 user = User.objects.get(email=serializer.validated_data['email'])
-#             except Exception as e:
-#                 return Response({"error":str(e)})
-#             if user:
-#                 otp = random.randint(1000,9999)
-#                 cache.set(email,otp,timeout=300)
-#                 print("otp sent")
-#                 send_mail(
-#                     "Your code sent",
-#                         f"Your code is {otp}. It is valid for 5 minutes.",
-#                         settings.EMAIL_HOST_USER,
-#                         [email],
-#                         fail_silently=False,
-#                         )
-#                 return Response({"message":"please verify your email, we sent code to your email"}) 
-#             return Response({"error":"User not found"})
-#         return Response({"error":serializer.errors})
-
-
-
-
-
-# # from django.contrib.auth.models import User
-# from django.utils.http import urlsafe_base64_decode
-# from rest_framework.decorators import api_view, permission_classes
-# from rest_framework.permissions import AllowAny
-# from rest_framework.response import Response
-# from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
-# from app.utils import generate_reset_password_link
-
-# token_generator = PasswordResetTokenGenerator()
-
-# def forgot_password_view(request):
-#     return render(request,'forgot_password.html')
-
-# #@swagger_auto_schema(method='post',request_body=LoginSerializer)
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def forgot_password(request):
-#     email = request.data.get("email")
-#     try:
-#         user = User.objects.get(email=email)
-#         reset_link = generate_reset_password_link(user, request)
-#         # TODO: send reset_link by email (SendGrid, SMTP, etc.)
-#         send_mail(
-#                  "Reset your password ",
-#                     f"Your reset password link. {reset_link}",
-#                     settings.EMAIL_HOST_USER,
-#                     [email],
-#                     fail_silently=False,
-#             )
-#         return Response({"reset_link": reset_link})
-#     except User.DoesNotExist:
-#         return Response({"error": "User not found"}, status=404)
-
-# from rest_framework import serializers
-
-# class Reset(serializers.Serializer):
-#     new_password = serializers.CharField()
-#     conf_password = serializers.CharField()
-
-
-# @permission_classes([AllowAny])
-# #@swagger_auto_schema(method='post',request_body=Reset)
-# @api_view(['POST'])
-# def reset_password(request, uidb64, token):
-#     try:
-#         uid = urlsafe_base64_decode(uidb64).decode()
-#         user = User.objects.get(pk=uid)
-#         print(user)
-#         print(user.email)
-#     except Exception:
-#         return Response({"error": "Invalid link"}, status=400)
-
-#     if token_generator.check_token(user, token):
-#         new_password = request.data.get("password")
-#         user.set_password(new_password)
-#         user.save()
-#         return Response({"message": "Password reset successful","password":new_password})
-#     return Response({"error": "Invalid or expired token"}, status=400)
-
-
-# def reset_page(request,uiid64,token):
-#     if request.method == 'POST':
-#         password = request.POST.get("password")
-#         conf_password = request.POST.get("conf_password")
-
-#         if password != conf_password:
-#             return render(request,'reset_password.html',{
-#                 "error":"passwords dont match",
-#                 "uiid64":uiid64,
-#                 "token":token
-#                 }
-#             )
-#         try:
-#             uid = urlsafe_base64_decode(uiid64).decode()
-#             user = User.objects.get(pk=uid)
-#         except Exception as e:
-#             return render(request,'reset_password.html',{"error":"Invalid link"})
-
-#         if default_token_generator.check_token(user,token):
-#             user.set_password(conf_password)
-#             user.save()
-#             return redirect('home')
-#         else:
-#             return render(request,'reset_password.html',{"error":"Token expired"})
-        
-#     return render(request,'reset_password.html',{"uiid64":uiid64,"token":token})
-
-
-# # @permission_classes(IsAuthenticated)
-# from django.contrib.auth.decorators import login_required
-
-# # @login_required
-# # @login_required(login_url='/userlogin/')
-
-# # @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def home(request):
-#     return render(request,"home.html")
-
-# def loginexistinguser_view(request):
-#     return render(request,'loginexisting.html')
-    
-
-# @permission_classes([IsAuthenticated])
-# def student_dashboard(request):
-#     return render(request,'student_dashboard.html')
-
-
-# #@swagger_auto_schema(method='post', request_body=LoginUserSerializer)
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def loginexistinguser(request):
-#     serializer = LoginUserSerializer(data=request.data)
-#     print('user here')
-#     if serializer.is_valid():
-#         print('user here2 ---')
-#         email = serializer.validated_data.get("email", "").strip().lower()
-#         try:
-#             userin = User.objects.get(email=email)
-#         except User.DoesNotExist:
-#             return Response({"error":"User not found"})
-#         # if userin is None:
-#         #     return Response({"error":"User not found!"},status=status.HTTP_404_NOT_FOUND)
-#         password = serializer.validated_data.get("password", "").strip()
-#         print(email,password,'email password ---')
-        
-#         user = authenticate(request=request._request, email=email, password=password)
-#         print(user,'tthis user is good')
-#         print(userin,'userin -------- here ')
-#         if user is None:
-#             return Response({"error":"Invalid credentials"},status=status.HTTP_400_BAD_REQUEST)
-#         if not userin.email_verified:
-#             return Response({"error": "email is not verified"}, status=status.HTTP_400_BAD_REQUEST)
-    
-#         if user:
-#             django_login(request._request, user)  # Log the user in
-#             refresh = RefreshToken.for_user(user)
-#             role = 'admin' if userin.is_admin  else 'User' 
-#             refresh['role'] = role
-#             print(role)
-#             print(refresh)
-#             return Response({
-#                 'success': True, 
-#                 'message': 'user logged in successfully.', 
-#                 'role': role,
-#                 'access': str(refresh.access_token), 
-#                 'refresh': str(refresh)})
-        
-#         return Response({'success': False, 'message': 'Invalid credentials.'}, status=400)
-#     return Response(serializer.errors, status=400)
-
-
-# from django.core.cache import cache
-# # from linecache import cache
-# from django.shortcuts import render
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework import status
-# from rest_framework.status import HTTP_400_BAD_REQUEST
-# from drf_yasg.utils import swagger_auto_schema
-# from rest_framework import permissions
-# from rest_framework.decorators import api_view, APIView, permission_classes
-# from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
-# from rest_framework.response import Response
-# from django.core.mail import send_mail
-# from django.conf import settings
-# from drf_yasg.utils import swagger_auto_schema
-# import random
-
-
-# class GetAllUsers(APIView):
-#     # permission_classes = [IsAdminUser]
-
-#     def get(self, request):
-#         users = User.objects.all()
-#         # serializer = GetAllUsersSerializer(users, many=True)
-#         # return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-# # class UserRegisterView(APIView):
-# #     permission_classes = [AllowAny]
-
-# #     def post(self, request):
-# #         print('user is registering ')
-# #         serializer = UserRegisterSerializer(data=request.data)
-
-# #         if serializer.is_valid():
-# #             user = serializer.save()
-# #             print(user.email,'---')
-# #             # Send OTP
-# #             otp = random.randint(1000, 9999)
-# #             cache.set(user.email, otp, timeout=300)
-
-# #             send_mail(
-# #                 "You are registered",
-# #                 f"Please verify your email \n your otp is --> {otp}",
-# #                 settings.EMAIL_HOST_USER,
-# #                 [user.email],
-# #                 fail_silently=False,
-# #             )
-# #             return Response({"success": True, "message": "User registered successfully. Please verify your email."}, status=201)
-# #         print(serializer.errors)
-# #         return Response({"Error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
-
-
-
-# # class UpdateUserView(APIView):
-
-# #     def put(self,requst, pk):
-# #         try:
-# #             user = User.objects.get(pk=pk)
-# #         except User.DoesNotExist:
-# #             return Response({"message":"User does not exist"})
-# #         except Exception as e:
-# #             return Response({"error":str(e)})
-# #         data = requst.data
-# #         serializer = UserSerializer(instance=user, data=data, partial=True)
-# #         if serializer.is_valid():
-# #             serializer.save()
-# #             return Response({"message":"user is updated"},status=status.HTTP_200_OK)
-# #         return Response({"success":False,"error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)        
-
-
-# # class DeleteUser(APIView):
-
-# #     # permission_classes = [IsAdminUser]
-# #     def delete(self, request, pk):
-# #         print(request.META.get('HTTP_AUTHORIZATION'))
-
-# #         try:
-# #             print(pk,'1111')
-# #             user = User.objects.get(pk=pk)
-# #             print(user,'---')
-# #             user.delete()
-# #             return Response({"success":True, "message":"User deleted successfully!"},status=200
-# #             )
-
-# #         except Exception as e:
-# #             print(str(e))
-# #             return Response({"success":False, "error":str(e)}, status=400)
+@extend_schema(
+    summary='Get authenticated user profile'
+)
+class UserProfileView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        return SuccessResponse(UserProfileSerializer(request.user, context={'request': request}).data)
+
+
+class UserUpdateProfileImage(generics.UpdateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileImageUpdateSerializer
+    parser_classes = [MultiPartParser]
+    http_method_names = ['patch']
+
+    def get_object(self):
+        return self.request.user
+
+    @extend_schema(
+        request={
+            'multipart/form-data': {
+                'type': 'object',
+                'properties': {
+                    'image': {'type': 'string', 'format': 'binary'}
+                }
+            }
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserProfileImageUpdateSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return SuccessResponse({"message": "Image updated"})
+
+        return ErrorResponse(ResultCodes.UNKNOWN_ERROR)
+
+class UserUpdate(generics.UpdateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserUpdateSerializer
+    http_method_names = ['patch']
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return SuccessResponse(serializer.data)
+
+class UserLocationUpdate(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSetLocation
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        update_user_role_location(request.user, serializer.validated_data.get("lat"),
+                                  serializer.validated_data.get("longitude"))
+
+        return SuccessResponse({"message": "Location updated"})

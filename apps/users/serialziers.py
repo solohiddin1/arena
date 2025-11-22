@@ -5,8 +5,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings
 
-from apps.users.models import User, UserRole, UserDevice,VersionControl
-from .repository import exists_user_role_by_userid_role
+from apps.users.models import User, UserDevice,VersionControl
+# from .repository import 
 
 class AuthenticationSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=255, required=True)
@@ -27,11 +27,11 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
                 "no_active_account",
             )
 
-        if not exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
-            raise AuthenticationFailed(
-                self.error_messages["no_active_account"],
-                "no_active_account",
-            )
+        # if not exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
+        #     raise AuthenticationFailed(
+        #         self.error_messages["no_active_account"],
+        #         "no_active_account",
+        #     )
 
         data = {"access": str(refresh.access_token)}
 
@@ -51,6 +51,11 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
 
         return data
     
+
+class AuthenticationSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=255, required=True)
+    password = serializers.CharField(max_length=255, required=True)
+
 
 class RegisterSerializer(serializers.Serializer):
     email = serializers.CharField(required=True, max_length=150, min_length=5)
@@ -78,7 +83,6 @@ class RegisterSerializer(serializers.Serializer):
 
 class UserVerifySerializer(serializers.Serializer):
     user_id = serializers.IntegerField(required=True, allow_null=False)
-    role = serializers.CharField(required=True, max_length=30)
     code = serializers.CharField(required=True, max_length=4)
 
 
@@ -93,3 +97,44 @@ class AuthOtpVerifySerializer(serializers.Serializer):
     id = serializers.IntegerField(required=True)
     code = serializers.IntegerField(required=True,)
 
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # allow user to update their profile fields but not change email or permissions here
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "age",
+            "lat",
+            "longitude",
+            "language",
+        )
+        read_only_fields = ("id", "email")
+
+    def update(self, instance, validated_data):
+        # Use set_password elsewhere; do not allow password change here
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class UserProfileImageUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["image"]
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'phone_number', 'email', 'language']
+
+class UserSetLocation(serializers.Serializer):
+    lat = serializers.FloatField(required=True)
+    longitude = serializers.FloatField(required=True)

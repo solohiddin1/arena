@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, UserAuthOtp , UserDevice, VersionControl, OtpSentLog
+from .models import User, UserAuthOtp , UserDevice, VersionControl, OtpSentLog, UserPasswordReset
 from django.utils.html import format_html
 
 # Register your models here.
@@ -33,3 +33,7 @@ class UserAuthOtpAdmin(admin.ModelAdmin):
 @admin.register(OtpSentLog)
 class OtpSentLogAdmin(admin.ModelAdmin):
     list_display = ['id', 'email', 'message_id', 'otp']
+
+@admin.register(UserPasswordReset)
+class UserPasswordResetAdmin(admin.ModelAdmin):
+    list_display = ['id','user','reset_token','reset_token_created_at','code','otp_created_at','incorrect_count','otp_count','verified']

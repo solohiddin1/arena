@@ -45,8 +45,8 @@ class RegisterUser(GenericAPIView):
         #     otp = "2222"
 
         user = get_user_by_username(req_body["email"])
-        send_telegram_message(f"user is registering with email: {req_body['email']}," \
-                              f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
+        # send_telegram_message(f"user is registering with email: {req_body['email']}," \
+        #                       f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
         logger.info(f"user is registered with email: {req_body['email']}")
         if user is None:
             user = create_user(email=req_body["email"],

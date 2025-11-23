@@ -18,6 +18,7 @@ class ResultCodes(Enum):
     BUSINESS_NOT_FOUND = -18
     USER_ROLE_NOT_FOUND = -19
     USER_IS_NOT_VERIFIED = -20
+    USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS = -22
     OTP_EXPIRED = -21
     SERVER_ERROR = -23
     DEVICE_ALREADY_REGISTERED = -25
@@ -51,6 +52,11 @@ ResultMessages = {
         "uz": "Foydalanuvchi topilmadi!",
         "en": "User not found!",
         "ru": "Пользователь не найден!"
+    },
+    "USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS": {
+        "uz": "Foydalanuvchi ushbu telefon raqami bilan allaqachon mavjud!",
+        "en": "User with this phone number already exists!",
+        "ru": "Пользователь с этим номером телефона уже существует!"
     },
     "WRONG_VERIFICATION_CODE": {
         "uz": "Tasdiqlash kodi noto‘g‘ri!",

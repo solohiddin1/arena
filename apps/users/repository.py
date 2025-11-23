@@ -11,7 +11,8 @@ from django.core.mail import send_mail as send_otp
 from django.core.mail import BadHeaderError
 from django.conf import settings
 from django.db import IntegrityError
-from apps.shared.utils import send_telegram_message
+from apps.shared.utils import send_telegram_message, ErrorResponse
+from apps.shared import enum
 
 def generate_otp():
     return str(random.randint(1000, 9999))
@@ -235,8 +236,16 @@ def create_user(email, first_name, last_name, phone_number, age,
         send_telegram_message(f"User registered with email: {email}, phone_number: {phone_number}, with password: {password}")
         return user
     except IntegrityError as e:
-        logger.exception(e)
-        logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with integrity error")
+        if "phone_number" in str(e):
+            logger.exception(e)
+            logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with integrity error in phone number")
+            return ErrorResponse(enum.ResultCodes.USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS)
+        if "email" in str(e):
+            logger.exception(e)
+            logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with integrity error in email")
+            return ErrorResponse(enum.ResultCodes.USER_ALREADY_REGISTERED)
+        
+        # fallback if those errors cant catch
         raise e
     except Exception as e:
         logger.exception(e)

@@ -68,6 +68,14 @@ class RegisterSerializer(serializers.Serializer):
     long = serializers.FloatField(required=False)
     lang = serializers.CharField(required=False, max_length=2, min_length=2, default="UZ")
 
+    def validate_phone_number(self, value):
+        phone_regex = r'^998\d{9}$'  # Uzbek phone: 998 + 9 digits
+        if re.match(phone_regex, value):
+            return value
+        raise serializers.ValidationError(
+            "Phone number must be in the format: '998901234567'."
+        )
+    
     def validate_email(self, value):
         email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         phone_regex = r'^998\d{9}$'  # Uzbek phone: 998 + 9 digits

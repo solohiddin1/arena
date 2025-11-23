@@ -1,11 +1,11 @@
 runserver:
-	python manage.py runserver
+	python3 manage.py runserver
 
 mig:
-	python manage.py makemigrations && python manage.py migrate
+	python3 manage.py makemigrations && python3 manage.py migrate
 
 admin:
-	python manage.py createsuperuser
+	python3 manage.py createsuperuser
 
 regions:
 	python3 manage.py loaddata apps/shared/fixtures/regions.json

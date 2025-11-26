@@ -285,8 +285,30 @@ class OtpForgotPassword(GenericAPIView):
         otp = check_generate_otp(user)
 
         if not otp: return ErrorResponse(ResultCodes.DAILY_LIMIT_REACHED)
+        def send_otp(email, otp, timeout=5):
+            def try_send():
+                try:
+                    # Primary provider
+                    return send_email_from_server_from_brevo(email, otp)
+                except Exception as e:
+                    logger.info(f"Primary provider failed: {e}")
+                    try:
+                        return send_otp_email(email, otp)
+                        # Fallback
+                    except Exception as e2:
+                        logger.info(f"Both providers failed: {e2}")
+                        raise Exception("Unable to send OTP")
 
-        sms_res = send_otp_email(serializer.validated_data["email"], otp.code)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(try_send)
+                try:
+                    return future.result(timeout=timeout)  # seconds
+                except concurrent.futures.TimeoutError:
+                    raise Exception("OTP sending timed out")
+
+        sms_res = send_otp(serializer.validated_data["email"], otp.code)
+        # sms_res = send_otp_email(serializer.validated_data["email"], otp.code)
+
         if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
 
         return SuccessResponse({

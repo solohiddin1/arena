@@ -62,6 +62,7 @@ LIBS = [
     'parler',
     'drf_yasg',
     'rest_framework',
+    'django_filters',
     'drf_spectacular',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',

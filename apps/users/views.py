@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,11 +15,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import MultiPartParser
 
 from apps.shared.enum import ResultCodes
-from apps.shared.utils import ErrorResponse
+from apps.shared.utils import ErrorResponse, SuccessResponse
 from apps.shared.utils import SuccessResponse
 from apps.shared.utils import send_telegram_message, get_logger
 from apps.shared.send_email import send_email_from_server_from_brevo
-
+from apps.shared.swagger.parameters import ACCEPT_LANGUAGE_HEADER
 from .repository import *
 from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerializer, RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer, UserSetLocation, UserUpdateSerializer, 
                             UserVerifySerializer, AuthOtpSendSerializer, 
@@ -28,10 +29,13 @@ logger = get_logger()
 
 
 @extend_schema(
+    parameters=ACCEPT_LANGUAGE_HEADER,
     summary='to register user'
 )
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
+    filter_backends=[DjangoFilterBackend]
+    # filterset_fields = ['region', 'district']
     role = "USER"
 
     @transaction.atomic
@@ -61,10 +65,9 @@ class RegisterUser(GenericAPIView):
                                 language=req_body.get("language","UZ"),
                                 password=req_body["password"],
                                 is_active=False)
-        else:
-            if user.is_verified:
-                return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
-            update_user_otp(user.id, otp, timezone.now())
+        if user.is_verified:
+            return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+            # update_user_otp(user.id, otp, timezone.now())
 
         # send_result = send_otp_email(req_body["email"], otp)
         def send_otp(email, otp, timeout=5):
@@ -93,7 +96,7 @@ class RegisterUser(GenericAPIView):
         if not send_result:
             return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
 
-        return Response({
+        return SuccessResponse({
             "id": user.id,
             "first_name": user.first_name,
             "last_name": user.last_name,

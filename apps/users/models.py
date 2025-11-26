@@ -41,6 +41,8 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
     otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
     otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
+    region = models.ForeignKey('shared.Region', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("region"))
+    district = models.ForeignKey('shared.District', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("district"))
 
     objects = MyUserManager()
 

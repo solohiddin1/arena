@@ -215,7 +215,7 @@ def create_user(email, first_name, last_name, phone_number, age,
         # When USERNAME_FIELD is changed to `email` but the `username` column still
         # exists and is unique, creating a user without a username will cause
         # a UNIQUE constraint error (multiple users with empty username '').
-        logger.info(f"User is registering with email: {email}, first_name: {first_name}, and password: {password}")
+        logger.info(f"User is registering with email: {email}, first_name: {first_name}, and password: {password}") 
         user = User.objects.create(
             email=email,
             username=email,
@@ -233,7 +233,7 @@ def create_user(email, first_name, last_name, phone_number, age,
         user.set_password(password)
         user.save()
         logger.info(f"User is registered successfully with email: {email}, with phone_number:{phone_number}")
-        send_telegram_message(f"User registered with email: {email}, phone_number: {phone_number}, with password: {password}")
+        # send_telegram_message(f"User registered with email: {email}, phone_number: {phone_number}, with password: {password}")
         return user
     except IntegrityError as e:
         if "phone_number" in str(e):

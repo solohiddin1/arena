@@ -72,13 +72,14 @@ class RegisterUser(GenericAPIView):
                                 region=req_body.get("region",None),
                                 district=req_body.get("district",None),
                                 is_active=False)
-        if user.is_verified:
-            return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
-        if user.otp:
-            if timezone.now() - user.otp_created_at < datetime.timedelta(minutes=2):
-                return ErrorResponse(ResultCodes.OTP_ALREADY_SENT)
-            else:
-                update_user_otp(user.id, otp, timezone.now())
+        else:
+            if user.is_verified:
+                return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+            update_user_otp(user.id, otp, timezone.now())
+
+        # if user.otp:
+        #     if timezone.now() - user.otp_created_at < datetime.timedelta(minutes=2):
+        #         return ErrorResponse(ResultCodes.OTP_ALREADY_SENT)
         
             # update_user_otp(user.id, otp, timezone.now())
 

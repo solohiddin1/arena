@@ -6,7 +6,7 @@ from django.utils.html import format_html
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['id', 'email', 'phone_number', 'is_staff', 'is_active', 'is_superuser', 'show_avatar']
+    list_display = ['id', 'email', 'phone_number', 'is_staff', 'is_active', 'is_superuser', 'is_verified', 'show_avatar']
     search_fields = ['email', 'phone_number']
 
     def show_avatar(self, obj):

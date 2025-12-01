@@ -48,6 +48,7 @@ urlpatterns = [
     path('api/app/', include('apps.app.urls')),
     path('api/user/', include('apps.users.urls')),
     path('api/post/', include('apps.posts.urls')),
+    path('api/shared/', include('apps.shared.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

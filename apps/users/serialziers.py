@@ -1,11 +1,13 @@
-from typing import Any
-from rest_framework import serializers
 import re
+from typing import Any
+
+from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings
 
 from apps.users.models import User, UserDevice,VersionControl
+from apps.shared.models import Region , District
 # from .repository import 
 
 class AuthenticationSerializer(serializers.Serializer):
@@ -57,7 +59,7 @@ class AuthenticationSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=255, required=True)
 
 
-class RegisterSerializer(serializers.Serializer):
+class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.CharField(required=True, max_length=150, min_length=5)
     password = serializers.CharField(required=True, max_length=150, min_length=5)
     first_name = serializers.CharField(required=True, max_length=150, min_length=1)
@@ -67,6 +69,31 @@ class RegisterSerializer(serializers.Serializer):
     lat = serializers.FloatField(required=False)
     long = serializers.FloatField(required=False)
     lang = serializers.CharField(required=False, max_length=2, min_length=2, default="UZ")
+    # region = serializers.IntegerField(
+    #     required=False, allow_null=False,
+    #     help_text="Region ID"
+    #     )
+    # district = serializers.IntegerField(
+    #     required=False, allow_null=False,
+    #     help_text="District ID"
+    #     )
+
+    class Meta:
+        model = User
+        fields = (
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "age",
+            "lat",
+            "long",
+            "lang",
+            "region",
+            "district",
+        )
+        extra_kwargs = {'password': {'write_only': True}}
 
     def validate_phone_number(self, value):
         phone_regex = r'^998\d{9}$'  # Uzbek phone: 998 + 9 digits
@@ -117,10 +144,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone_number",
+            "image",
             "age",
             "lat",
             "longitude",
             "language",
+            "region",
+            "district",
+            "is_active",
+            "is_verified",
         )
         read_only_fields = ("id", "email")
 

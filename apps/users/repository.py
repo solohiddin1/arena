@@ -208,7 +208,7 @@ def get_user_by_username(email):
 
 
 def create_user(email, first_name, last_name, phone_number, age,
-                otp, otp_created_at, 
+                otp, otp_created_at, region, district,
                 password, lat=None, longitude=None, language="UZ", is_active=True):
     try:
         # Ensure `username` (which is unique on the AbstractUser) is set
@@ -228,6 +228,8 @@ def create_user(email, first_name, last_name, phone_number, age,
             lat=lat,
             longitude=longitude,
             language=language,
+            region=region,
+            district=district,
             # is_active=is_active
         )
         user.set_password(password)

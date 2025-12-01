@@ -69,6 +69,8 @@ class RegisterUser(GenericAPIView):
                                 longitude=req_body.get("longitude",0.0),
                                 language=req_body.get("language","UZ"),
                                 password=req_body["password"],
+                                region=req_body.get("region",None),
+                                district=req_body.get("district",None),
                                 is_active=False)
         if user.is_verified:
             return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)

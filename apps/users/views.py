@@ -20,8 +20,11 @@ from apps.shared.utils import SuccessResponse
 from apps.shared.utils import send_telegram_message, get_logger
 from apps.shared.send_email import send_email_from_server_from_brevo
 from apps.shared.swagger.parameters import ACCEPT_LANGUAGE_HEADER
+from apps.users.tasks import send_telegram_message_celery
 from .repository import *
-from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerializer, RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer, UserSetLocation, UserUpdateSerializer, 
+from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerializer,\
+                           RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer,\
+                              UserSetLocation, UserUpdateSerializer, 
                             UserVerifySerializer, AuthOtpSendSerializer, 
                             AuthOtpVerifySerializer, UserProfileSerializer, VerifyForgotPasswordSerializer)
 
@@ -51,6 +54,8 @@ class RegisterUser(GenericAPIView):
         user = get_user_by_username(req_body["email"])
         # send_telegram_message(f"user is registering with email: {req_body['email']}," \
         #                       f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
+        send_telegram_message_celery.delay(f"user is registering with email: {req_body['email']}," \
+                                      f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
         logger.info(f"user is registered with email: {req_body['email']}")
         if user is None:
             user = create_user(email=req_body["email"],
@@ -67,6 +72,12 @@ class RegisterUser(GenericAPIView):
                                 is_active=False)
         if user.is_verified:
             return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
+        if user.otp:
+            if timezone.now() - user.otp_created_at < datetime.timedelta(minutes=2):
+                return ErrorResponse(ResultCodes.OTP_ALREADY_SENT)
+            else:
+                update_user_otp(user.id, otp, timezone.now())
+        
             # update_user_otp(user.id, otp, timezone.now())
 
         # send_result = send_otp_email(req_body["email"], otp)

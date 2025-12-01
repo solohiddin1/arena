@@ -585,3 +585,14 @@ def update_user_role_mini_app(user_role, mini_app=True):
     except Exception as e:
         logger.exception(e)
         raise e
+
+
+def update_user_otp(user_id, otp, otp_created_at):
+    try:
+        User.objects.filter(id=user_id).update(
+            otp=otp,
+            otp_created_at=otp_created_at
+        )
+    except Exception as e:
+        logger.exception(e)
+        raise e

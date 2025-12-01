@@ -25,6 +25,7 @@ class ResultCodes(Enum):
     ALREADY_VERIFIED = -57
     OTP_INCORRECT = -59
     INVALID_RESET_TOKEN = -60
+    OTP_ALREADY_SENT = -61
 
 
 ResultMessages = {
@@ -137,5 +138,10 @@ ResultMessages = {
         "uz": "INVALID_RESET_TOKEN",
         "en": "INVALID_RESET_TOKEN",
         "ru": "INVALID_RESET_TOKEN"
+    },
+    "OTP_ALREADY_SENT": {
+        "uz": "OTP allaqachon yuborilgan! Iltimos, biroz kuting va qayta urinib ko‘ring.",
+        "en": "OTP has already been sent! Please wait a moment and try again.",
+        "ru": "OTP уже был отправлен! Пожалуйста, подождите немного и попробуйте снова."
     },
 }

@@ -204,7 +204,6 @@ class LoginUser(GenericAPIView):
         })
 
 
-
 @extend_schema(
     summary='Get authenticated user profile'
 )
@@ -245,6 +244,7 @@ class UserUpdateProfileImage(generics.UpdateAPIView):
 
         return ErrorResponse(ResultCodes.UNKNOWN_ERROR)
 
+
 class UserUpdate(generics.UpdateAPIView):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
@@ -266,6 +266,7 @@ class UserUpdate(generics.UpdateAPIView):
 
         return SuccessResponse(serializer.data)
 
+
 class UserLocationUpdate(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSetLocation
@@ -279,6 +280,7 @@ class UserLocationUpdate(generics.CreateAPIView):
                                   serializer.validated_data.get("longitude"))
 
         return SuccessResponse({"message": "Location updated"})
+
 
 class OtpForgotPassword(GenericAPIView):
     queryset = User.objects.all()

@@ -6,5 +6,5 @@ migrations/
 .vscode
 logs/
 *.log
-media/
+media/user/images/
 staticfiles/

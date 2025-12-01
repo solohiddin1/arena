@@ -31,7 +31,7 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     last_name = models.CharField(max_length=255,null=True)
     email = models.EmailField(unique=True, default=None)
     phone_number = models.CharField(max_length=12, blank=True, null=True, validators=[phone_regex], verbose_name=_('phone_number'))
-    image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'), default='user/images/default_avatar.png')
+    image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'), default='user/user_default.jpeg')
     language = models.CharField(choices=LANG_CHOICES, max_length=2, default='UZ', verbose_name=_('lang'))
     password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
     lat = models.FloatField(null=True, blank=True, verbose_name=_("lat"))

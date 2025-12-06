@@ -1,4 +1,5 @@
-import uuid
+import secrets
+import string
 import datetime
 import concurrent.futures
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -356,7 +357,10 @@ class VerifyForgotPassword(GenericAPIView):
             update_user_password_reset_incorrect_count(otp_)
             return ErrorResponse(ResultCodes.OTP_INCORRECT)
 
-        reset_token = uuid.uuid4()
+        while True:
+            reset_token = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(8))
+            if not get_user_password_reset_by_token(reset_token):
+                break
         update_user_password_reset_verified(otp_, reset_token)
 
         return SuccessResponse({

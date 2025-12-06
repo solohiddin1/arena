@@ -111,7 +111,7 @@ class OtpSentLog(BaseModel):
 
 class UserPasswordReset(BaseModel):
     user = models.OneToOneField(User, models.CASCADE, blank=True, null=True)  # OneToOneField auto-creates unique index
-    reset_token = models.UUIDField(editable=True, null=True, blank=True, unique=True)  # unique=True auto-creates index
+    reset_token = models.CharField(max_length=8, null=True, blank=True, unique=True)
     reset_token_created_at = models.DateTimeField(null=True, blank=True)
     code = models.CharField(max_length=4, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)

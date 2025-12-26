@@ -26,7 +26,7 @@ class ResultCodes(Enum):
     OTP_INCORRECT = -59
     INVALID_RESET_TOKEN = -60
     OTP_ALREADY_SENT = -61
-
+    ERROR_SMS_SERVICE = -62
 
 ResultMessages = {
     "SUCCESS": {
@@ -144,4 +144,9 @@ ResultMessages = {
         "en": "OTP has already been sent! Please wait a moment and try again.",
         "ru": "OTP уже был отправлен! Пожалуйста, подождите немного и попробуйте снова."
     },
+    "ERROR_SMS_SERVICE": {
+        "uz": "SMS xizmatida xatolik yuz berdi!",
+        "en": "Error in SMS service!",
+        "ru": "Ошибка в SMS сервисе!"
+    }
 }

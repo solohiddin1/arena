@@ -53,25 +53,17 @@ class RegisterUser(GenericAPIView):
         #     otp = "2222"
 
         user = get_user_by_username(req_body["email"])
-        # send_telegram_message(f"user is registering with email: {req_body['email']}," \
-        #                       f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
         send_telegram_message_celery.delay(f"user is registering with email: {req_body['email']}," \
-                                      f"and first_name: {req_body.get('first_name','')} with password: {req_body['password']}")
+                                      f"and full_name: {req_body.get('full_name','')} with password: {req_body['password']}")
         logger.info(f"user is registered with email: {req_body['email']}")
         if user is None:
             user = create_user(email=req_body["email"],
-                                first_name=req_body.get("first_name",""),
-                                last_name=req_body.get("last_name",""),
+                                full_name=req_body.get("full_name",""),
                                 phone_number=req_body.get("phone_number",""),
-                                age=req_body.get("age",0),
                                 otp=otp,
                                 otp_created_at=timezone.now(),
-                                lat=req_body.get("lat",0.0),
-                                longitude=req_body.get("longitude",0.0),
-                                language=req_body.get("language","UZ"),
+                                language="UZ",
                                 password=req_body["password"],
-                                region=req_body.get("region",None),
-                                district=req_body.get("district",None),
                                 is_active=False)
         else:
             if user.is_verified:
@@ -113,14 +105,11 @@ class RegisterUser(GenericAPIView):
 
         return SuccessResponse({
             "id": user.id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
+            "full_name": user.full_name,
             "email": user.email,
             "phone_number": user.phone_number,
-            "role": self.role,
             "is_verified": False,
             "otp": otp,
-            "language": user.language,
         })
 
 

@@ -27,22 +27,16 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
         message="Telefon raqam '998XXXXXXXXX' formatida bo'lishi kerak!"
     )
 
-    first_name = models.CharField(max_length=255,null=True)
-    last_name = models.CharField(max_length=255,null=True)
+    full_name = models.CharField(max_length=255,null=True, blank=True, verbose_name=_('full_name'))
     email = models.EmailField(unique=True, default=None)
     phone_number = models.CharField(max_length=12, blank=True, null=True, validators=[phone_regex], verbose_name=_('phone_number'))
     image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'), default='user/user_default.jpeg')
     language = models.CharField(choices=LANG_CHOICES, max_length=2, default='UZ', verbose_name=_('lang'))
     password = models.CharField(max_length=255,null=True, verbose_name=_('password'))
-    lat = models.FloatField(null=True, blank=True, verbose_name=_("lat"))
-    longitude = models.FloatField(null=True, blank=True, verbose_name=_("long"))
-    age = models.PositiveIntegerField(null=True, blank=True, verbose_name=_("age"))
     is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
     is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
     otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
     otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
-    region = models.ForeignKey('shared.Region', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("region"))
-    district = models.ForeignKey('shared.District', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("district"))
 
     objects = MyUserManager()
 

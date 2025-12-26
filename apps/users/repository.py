@@ -133,103 +133,22 @@ def get_user_by_username(email):
         raise e
 
 
-# def get_user_role_by_username_role_self(email, role):
-#     try:
-#         return UserRole.objects.select_related('user').filter(user__email=email, role=role).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-# def get_user_role_by_username_role(username, role, is_active=True, is_verified=True):
-#     try:
-#         return UserRole.objects.select_related('user').filter(
-#             user__username=username,
-#             role=role,
-#             is_active=is_active,
-#             is_verified=is_verified
-#         ).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-
-# def get_user_role_by_userid_role_self(user_id, role):
-#     try:
-        
-#         user_role = UserRole.objects.filter(user_id=user_id, role=role).first()
-#         # user_role = UserAuthOtp.objects.filter(user_role__id=user_id).first()
-#         return user_role
-#         # return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-    
-# def get_user_role_by_userid_role_self(user_id, role):
-#     try:
-#         user_role = UserRole.objects.filter(user_id=user_id, role=role).first()
-#         print(user_id)
-#         print(user_role)
-#         print(user_role.user.email)
-#         print(user_role.otp)
-#         return user_role
-#         # return UserRole.objects.select_related('user').filter(user_id=user_id, role=role).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-# def get_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
-#     try:
-#         return UserRole.objects.select_related('user').filter(
-#             user_id=user_id,
-#             role=role,
-#             is_active=is_active,
-#             is_verified=is_verified
-#         ).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-# def exists_user_role_by_userid_role(user_id, role, is_active=True, is_verified=True):
-#     try:
-#         # No select_related needed for exists() - it doesn't retrieve objects
-#         return UserRole.objects.filter(
-#             user_id=user_id,
-#             role=role,
-#             is_active=is_active,
-#             is_verified=is_verified
-#         ).exists()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-def create_user(email, first_name, last_name, phone_number, age,
-                otp, otp_created_at, region, district,
-                password, lat=None, longitude=None, language="UZ", is_active=True):
+def create_user(email, full_name, phone_number,
+                otp, otp_created_at,password, language="UZ", is_active=True):
     try:
         # Ensure `username` (which is unique on the AbstractUser) is set
         # When USERNAME_FIELD is changed to `email` but the `username` column still
         # exists and is unique, creating a user without a username will cause
         # a UNIQUE constraint error (multiple users with empty username '').
-        logger.info(f"User is registering with email: {email}, first_name: {first_name}, and password: {password}") 
+        logger.info(f"User is registering with email: {email}, full_name: {full_name}, and password: {password}") 
         user = User.objects.create(
             email=email,
             username=email,
-            first_name=first_name,
-            last_name=last_name,
+            full_name=full_name,
             phone_number=phone_number,
-            age=age,
             otp=otp,
             otp_created_at=otp_created_at,
-            lat=lat,
-            longitude=longitude,
             language=language,
-            region=region,
-            district=district,
             # is_active=is_active
         )
         user.set_password(password)
@@ -240,32 +159,20 @@ def create_user(email, first_name, last_name, phone_number, age,
     except IntegrityError as e:
         if "phone_number" in str(e):
             logger.exception(e)
-            logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with integrity error in phone number")
+            logger.exception(f"User tried to register with email: {email}, full_name: {full_name}, and password: {password}, but failed with integrity error in phone number")
             return ErrorResponse(enum.ResultCodes.USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS)
         if "email" in str(e):
             logger.exception(e)
-            logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with integrity error in email")
+            logger.exception(f"User tried to register with email: {email}, full_name: {full_name}, and password: {password}, but failed with integrity error in email")
             return ErrorResponse(enum.ResultCodes.USER_ALREADY_REGISTERED)
         
         # fallback if those errors cant catch
         raise e
     except Exception as e:
         logger.exception(e)
-        logger.exception(f"User tried to register with email: {email}, first_name: {first_name}, and password: {password}, but failed with exception error")
+        logger.exception(f"User tried to register with email: {email}, full_name: {full_name}, and password: {password}, but failed with exception error")
         raise e
 
-
-# def update_user_role(user_role_id, otp, otp_created_at, is_verified=False, is_active=False):
-#     try:
-#         UserRole.objects.filter(id=user_role_id).update(
-#             otp=otp,
-#             otp_created_at=otp_created_at,
-#             is_verified=is_verified,
-#             is_active=is_active
-#         )
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
 
 def update_user_set_verified(user_id, is_verified=True, is_active=True):
     try:
@@ -277,25 +184,6 @@ def update_user_set_verified(user_id, is_verified=True, is_active=True):
         logger.exception(e)
         raise e
 
-
-# def create_user_role(role, user_id, otp, otp_created_at, is_verified=False, is_active=False):
-#     try:
-#         user_role = UserRole.objects.create(
-#             role=role,
-#             user_id=user_id,
-#             otp=otp,
-#             otp_created_at=otp_created_at,
-#             is_verified=is_verified,
-#             is_active=is_active
-#         )
-#         user_role.save()
-#         send_telegram_message(f"UserRole created for user_id: {user_id} with role: {role}")
-#         logger.info(f"UserRole created for user_id: {user_id} with role: {role}")
-#         return user_role
-#     except Exception as e:
-#         send_telegram_message(f"Failed to create UserRole for user_id: {user_id} with role: {role}")
-#         logger.exception(e)
-#         raise e
 
 
 def get_user_device_by_user_role_device(user, role, device_id):
@@ -344,14 +232,6 @@ def delete_user_device_by_user_role_device(user, role, device_id):
         raise e
 
 
-# def get_user_role_by_user(user):
-#     try:
-#         return UserRole.objects.select_related('user').filter(user=user).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
 def update_user_role_location(user, lat, longitude):
     try:
         user.lat = lat
@@ -361,18 +241,6 @@ def update_user_role_location(user, lat, longitude):
     except Exception as e:
         logger.exception(e)
         raise e
-
-
-# def get_active_verified_user_role(user):
-#     try:
-#         return UserRole.objects.select_related('user').filter(
-#             user=user,
-#             is_active=True,
-#             is_verified=True
-#         ).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
 
 
 def update_user_referral_code(user_referral, invite_ref_code):
@@ -459,18 +327,6 @@ def update_user_auth_otp_verified(otp, reset_token):
         raise e
 
 
-# def get_admin_user_roles():
-#     try:
-#         return UserRole.objects.select_related('user').filter(
-#             role='ADMIN',
-#             is_active=True,
-#             is_verified=True
-#         )
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
 def deactivate_user_role(user_role):
     try:
         user_role.is_active = False
@@ -543,13 +399,12 @@ def get_user_by_userid(id):
 #         raise e
 
 
-def create_user_simple(username, first_name, last_name, phone=None, email=None):
+def create_user_simple(username, full_name, phone=None, email=None):
     """Create a simple user without password (for OAuth/Click integration)"""
     try:
         user = User.objects.create(
             username=username,
-            first_name=first_name,
-            last_name=last_name,
+            full_name=full_name,
             phone=phone,
             email=email
         )

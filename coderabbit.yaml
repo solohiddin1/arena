@@ -1,6 +1,0 @@
-reviews:
-  auto_review: true
-
-settings:
-  max_comments: 15
-  suggest_fixes: true

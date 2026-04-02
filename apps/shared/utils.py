@@ -112,7 +112,7 @@ def clean_ckeditor_content(raw_html):
     return cleaner.get_clean_text()
 
 import requests
-from config.config import settings
+from django.conf import settings
 
 TELEGRAM_TOKEN = settings.TELEGRAM_TOKEN
 CHAT_ID = settings.CHAT_ID

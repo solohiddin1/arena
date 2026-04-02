@@ -3,7 +3,7 @@ import random
 from django.db import transaction
 from django.utils import timezone
 
-from apps.shared.models import logger
+from apps.shared.middleware.middleware import get_logger
 from apps.users.models import User, UserDevice, UserAuthOtp, UserPasswordReset, OtpSentLog
 from django.core.mail import send_mail as send_otp
 from django.conf import settings
@@ -13,6 +13,8 @@ from django.conf import settings
 from django.db import IntegrityError
 from apps.shared.utils import send_telegram_message, ErrorResponse
 from apps.shared import enum
+
+logger = get_logger()
 
 def generate_otp():
     return str(random.randint(1000, 9999))

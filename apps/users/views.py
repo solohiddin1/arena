@@ -1,28 +1,19 @@
-import secrets
-import string
-import datetime
-import concurrent.futures
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from django.contrib.auth import authenticate
+from drf_spectacular.utils import extend_schema
 from django.db import transaction
-from django.contrib.auth.hashers import make_password
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import MultiPartParser
 
 from apps.shared.enum import ResultCodes
 from apps.shared.utils import ErrorResponse, SuccessResponse
 from apps.shared.utils import SuccessResponse
 from apps.shared.utils import send_telegram_message, get_logger
-from apps.shared.send_email import send_email_from_server_from_brevo
-from apps.shared.swagger.parameters import ACCEPT_LANGUAGE_HEADER
-from apps.users.tasks import send_telegram_message_celery
 from .repository import *
+from .services.user_service import UserService
 from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerializer,\
                            RegisterSerializer,AuthenticationSerializer, UserProfileImageUpdateSerializer,\
                               UserSetLocation, UserUpdateSerializer, 
@@ -30,6 +21,8 @@ from .serialziers import (ApplyNewPasswordSerializer, OtpForgotPasswordSerialize
                             AuthOtpVerifySerializer, UserProfileSerializer, VerifyForgotPasswordSerializer)
 
 logger = get_logger()
+user_service = UserService()
+ACCEPT_LANGUAGE_HEADER = []
 
 
 @extend_schema(
@@ -39,78 +32,16 @@ logger = get_logger()
 class RegisterUser(GenericAPIView):
     serializer_class = RegisterSerializer
     filter_backends=[DjangoFilterBackend]
-    # filterset_fields = ['region', 'district']
     role = "USER"
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        req_body = serializer.validated_data
-
-        otp = generate_otp()
-        # if req_body["email"] == 'sirojiddinovsolohiddin961@gmail.com':
-        #     otp = "2222"
-
-        user = get_user_by_username(req_body["email"])
-        send_telegram_message_celery.delay(f"user is registering with email: {req_body['email']}," \
-                                      f"and full_name: {req_body.get('full_name','')} with password: {req_body['password']}")
-        logger.info(f"user is registered with email: {req_body['email']}")
-        if user is None:
-            user = create_user(email=req_body["email"],
-                                full_name=req_body.get("full_name",""),
-                                phone_number=req_body.get("phone_number",""),
-                                otp=otp,
-                                otp_created_at=timezone.now(),
-                                language="UZ",
-                                password=req_body["password"],
-                                is_active=False)
-        else:
-            if user.is_verified:
-                return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
-            update_user_otp(user.id, otp, timezone.now())
-
-        # if user.otp:
-        #     if timezone.now() - user.otp_created_at < datetime.timedelta(minutes=2):
-        #         return ErrorResponse(ResultCodes.OTP_ALREADY_SENT)
-        
-            # update_user_otp(user.id, otp, timezone.now())
-
-        # send_result = send_otp_email(req_body["email"], otp)
-        def send_otp(email, otp, timeout=5):
-            def try_send():
-                try:
-                    # Primary provider
-                    return send_email_from_server_from_brevo(email, otp)
-                except Exception as e:
-                    logger.info(f"Primary provider failed: {e}")
-                    try:
-                        return send_otp_email(email, otp)
-                        # Fallback
-                    except Exception as e2:
-                        logger.info(f"Both providers failed: {e2}")
-                        raise Exception("Unable to send OTP")
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(try_send)
-                try:
-                    return future.result(timeout=timeout)  # seconds
-                except concurrent.futures.TimeoutError:
-                    raise Exception("OTP sending timed out")
-
-        send_result = send_otp(req_body["email"], otp)
-
-        if not send_result:
-            return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
-
-        return SuccessResponse({
-            "id": user.id,
-            "full_name": user.full_name,
-            "email": user.email,
-            "phone_number": user.phone_number,
-            "is_verified": False,
-            "otp": otp,
-        })
+        result = user_service.register_user(serializer.validated_data)
+        if result.get("error"):
+            return ErrorResponse(result["error"])
+        return SuccessResponse(result["data"])
 
 
 @extend_schema(
@@ -124,36 +55,13 @@ class VerifyOtp(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        user = get_user_by_userid(
-            serializer.validated_data["user_id"],
+        result = user_service.verify_registration_otp(
+            user_id=serializer.validated_data["user_id"],
+            code=serializer.validated_data["code"],
         )
-
-        if user is None: return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
-        if user.is_verified: return ErrorResponse(ResultCodes.USER_ALREADY_REGISTERED)
-        if user.email == "sirojiddinovsolohiddin961@gmail.com":
-            if serializer.validated_data["code"] == "2222":
-                token = RefreshToken.for_user(user)
-                return SuccessResponse({
-                    "refresh": str(token),
-                    "access": str(token.access_token)
-                })
-            else:
-                return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
-        if user.otp:
-            if timezone.now() - user.otp_created_at > datetime.timedelta(
-                minutes=20): return ErrorResponse(ResultCodes.OTP_EXPIRED)
-
-        if user.otp != serializer.validated_data["code"]: return ErrorResponse(ResultCodes.WRONG_VERIFICATION_CODE)
-
-        update_user_set_verified(user.id)
-
-
-        token = RefreshToken.for_user(user)
-        return SuccessResponse({
-            "refresh": str(token),
-            "access": str(token.access_token)
-        })
+        if result.get("error"):
+            return ErrorResponse(result["error"])
+        return SuccessResponse(result["data"])
 
 
 @extend_schema(
@@ -166,33 +74,14 @@ class LoginUser(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data.get("email")
-        password = serializer.validated_data.get("password")
-
-        # Try authenticate; USERNAME_FIELD is 'email' so username is email
-        user = authenticate(request=request._request, username=email, password=password)
-        if user is None:
-            # also try with email keyword for custom backends
-            user = authenticate(request=request._request, email=email, password=password)
-
-        if user is None:
-            return ErrorResponse(ResultCodes.INVALID_CREDENTIALS)
-
-        # Ensure user has active & verified role
-        # user_role = get_user_role_by_userid_role(user.id, role, is_active=True, is_verified=True)
-        # if not user_role:
-        #     return ErrorResponse(ResultCodes.USER_IS_NOT_VERIFIED)
-
-        if not user.is_verified:
-            return ErrorResponse(ResultCodes.USER_IS_NOT_VERIFIED)
-
-        token = RefreshToken.for_user(user)
-
-        return SuccessResponse({
-            "refresh": str(token),
-            "access": str(token.access_token)
-        })
+        result = user_service.login_user(
+            request=request,
+            email=serializer.validated_data.get("email"),
+            password=serializer.validated_data.get("password"),
+        )
+        if result.get("error"):
+            return ErrorResponse(result["error"])
+        return SuccessResponse(result["data"])
 
 
 @extend_schema(
@@ -266,11 +155,12 @@ class UserLocationUpdate(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        update_user_role_location(request.user, serializer.validated_data.get("lat"),
-                                  serializer.validated_data.get("longitude"))
-
-        return SuccessResponse({"message": "Location updated"})
+        result = user_service.update_user_location(
+            user=request.user,
+            lat=serializer.validated_data.get("lat"),
+            longitude=serializer.validated_data.get("longitude"),
+        )
+        return SuccessResponse(result["data"])
 
 
 class OtpForgotPassword(GenericAPIView):
@@ -280,48 +170,10 @@ class OtpForgotPassword(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        user = get_user_by_username(
-            serializer.validated_data["email"],
-        )
-
-        if not user:
-            return ErrorResponse(ResultCodes.USER_ROLE_NOT_FOUND)
-
-        otp = check_generate_otp(user)
-
-        if not otp: return ErrorResponse(ResultCodes.DAILY_LIMIT_REACHED)
-        def send_otp(email, otp, timeout=5):
-            def try_send():
-                try:
-                    # Primary provider
-                    return send_email_from_server_from_brevo(email, otp)
-                except Exception as e:
-                    logger.info(f"Primary provider failed: {e}")
-                    try:
-                        return send_otp_email(email, otp)
-                        # Fallback
-                    except Exception as e2:
-                        logger.info(f"Both providers failed: {e2}")
-                        raise Exception("Unable to send OTP")
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(try_send)
-                try:
-                    return future.result(timeout=timeout)  # seconds
-                except concurrent.futures.TimeoutError:
-                    raise Exception("OTP sending timed out")
-
-        sms_res = send_otp(serializer.validated_data["email"], otp.code)
-        # sms_res = send_otp_email(serializer.validated_data["email"], otp.code)
-
-        if not sms_res: return ErrorResponse(ResultCodes.ERROR_SMS_SERVICE)
-
-        return SuccessResponse({
-            "reset_id": otp.id,
-            "otp": otp.code,
-            "message": "Email sent successfully!!!"
-        })
+        result = user_service.request_forgot_password_otp(serializer.validated_data["email"])
+        if result.get("error"):
+            return ErrorResponse(result["error"])
+        return SuccessResponse(result["data"])
 
 
 class VerifyForgotPassword(GenericAPIView):
@@ -331,31 +183,13 @@ class VerifyForgotPassword(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        otp_ = get_user_password_reset_by_id(serializer.validated_data['reset_id'])
-        if not otp_: return ErrorResponse(ResultCodes.UNKNOWN_ERROR)
-
-        if otp_.verified: return ErrorResponse(ResultCodes.ALREADY_VERIFIED)
-
-        if otp_.incorrect_count >= 3: return ErrorResponse(ResultCodes.OTP_INCORRECT_CNT)
-
-        if timezone.now() - otp_.otp_created_at > datetime.timedelta(minutes=3): return ErrorResponse(
-            ResultCodes.OTP_EXPIRED)
-
-        if otp_.code != serializer.validated_data['code']:
-            update_user_password_reset_incorrect_count(otp_)
-            return ErrorResponse(ResultCodes.OTP_INCORRECT)
-
-        while True:
-            reset_token = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(8))
-            if not get_user_password_reset_by_token(reset_token):
-                break
-        update_user_password_reset_verified(otp_, reset_token)
-
-        return SuccessResponse({
-            "reset_token": reset_token,
-            "message": "Verification success!!!"
-        })
+        result = user_service.verify_forgot_password(
+            reset_id=serializer.validated_data['reset_id'],
+            code=serializer.validated_data['code'],
+        )
+        if result.get("error"):
+            return ErrorResponse(result["error"])
+        return SuccessResponse(result["data"])
 
 
 class ApplyNewPassword(GenericAPIView):
@@ -365,21 +199,10 @@ class ApplyNewPassword(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        otp_ = get_user_password_reset_by_token(serializer.validated_data['reset_token'])
-        if not otp_: return ErrorResponse(ResultCodes.INVALID_RESET_TOKEN)
-
-        if not otp_.verified: return ErrorResponse(ResultCodes.ALREADY_VERIFIED)
-
-        if timezone.now() - otp_.reset_token_created_at > datetime.timedelta(minutes=15): return ErrorResponse(
-            ResultCodes.OTP_EXPIRED)
-
-        # Update password
-        user_role = get_user_by_username(otp_.user.email)
-        update_user_role_password(user_role, make_password(serializer.validated_data['password']))
-
-        clear_user_password_reset_token(otp_)
-
-        return SuccessResponse({
-            "message": "Successfully set new password!!!"
-        })
+        result = user_service.apply_new_password(
+            reset_token=serializer.validated_data['reset_token'],
+            password=serializer.validated_data['password'],
+        )
+        if result.get("error"):
+            return ErrorResponse(result["error"])
+        return SuccessResponse(result["data"])

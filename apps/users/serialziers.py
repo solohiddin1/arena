@@ -117,7 +117,6 @@ class AuthOtpVerifySerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        # allow user to update their profile fields but not change email or permissions here
         fields = (
             "id",
             "email",
@@ -126,11 +125,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "phone_number",
             "image",
             "age",
-            "lat",
-            "longitude",
-            "language",
-            "region",
-            "district",
             "is_active",
             "is_verified",
         )

@@ -13,12 +13,11 @@ import datetime
 from arena.settings import BASE_DIR
 
 
-def SuccessResponse(result=None):
+def SuccessResponse(result=None, status=status.HTTP_200_OK):
     return Response({
         "success": True,
         "result": result
-    }, status=status.HTTP_200_OK)
-
+    }, status=status)
 def ErrorResponse(result: ResultCodes, message=None):
     if message:
         return Response({

@@ -6,7 +6,6 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Abstr
 from django.utils.translation import gettext_lazy as _
 from .managers import MyUserManager
 
-# Create your models here.
 
 class BaseModel(models.Model):
     created_at = models.DateField(auto_now_add=True,null=True)
@@ -42,34 +41,13 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
         return self.email or self.phone_number or f"{self.id}"
 
 
-
 class UserAuthOtp(BaseModel):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
-    # user = models.ForeignKey(User, verbose_name=_('userotp'), on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     code = models.IntegerField()
     otp_created_at = models.DateTimeField(blank=True, null=True)
     is_used = models.BooleanField(default=False)
     incorrect_count = models.IntegerField(default=0)
     verified = models.BooleanField(default=False, verbose_name=_('verified'))
-
-
-class VersionControl(BaseModel):
-    DEVICE_TYPE_CHOICES = (
-        ("IOS", "IOS"),
-        ("ANDROID", "ANDROID")
-    )
-    device_type = models.CharField(max_length=10, choices=DEVICE_TYPE_CHOICES, verbose_name=_("device_type"))
-    current_version = models.CharField(max_length=10, verbose_name=_("current_version"))
-    is_active = models.BooleanField(default=False, verbose_name=_("is_active"))
-    force_update = models.BooleanField(default=False, verbose_name=_("force_update"))
-
-    def __str__(self):
-        return f"{self.device_type} - {self.current_version}"
-
-    class Meta:
-        verbose_name = _("App Version Control")
-        verbose_name_plural = _("App Version Controls")
-        db_table = "app_version_control"
 
 
 class UserDevice(BaseModel):
@@ -85,25 +63,3 @@ class UserDevice(BaseModel):
 
     class Meta:
         unique_together = ('user', 'device_id', 'role')
-
-
-class OtpSentLog(BaseModel):
-    email = models.CharField(max_length=12, verbose_name=_("email"), blank=True, null=True)
-    message_id = models.CharField(max_length=17, verbose_name=_("message_id"))
-    otp = models.CharField(max_length=4, null=True, blank=True, verbose_name=_("otp"))
-
-    class Meta:
-        indexes = [
-            # CRITICAL: Used for rate limiting - count OTPs sent today per phone
-            models.Index(fields=['email', 'created_at'], name='otp_log_email_created_idx'),
-        ]
-
-class UserPasswordReset(BaseModel):
-    user = models.OneToOneField(User, models.CASCADE, blank=True, null=True)  # OneToOneField auto-creates unique index
-    reset_token = models.CharField(max_length=8, null=True, blank=True, unique=True)
-    reset_token_created_at = models.DateTimeField(null=True, blank=True)
-    code = models.CharField(max_length=4, null=True, blank=True)
-    otp_created_at = models.DateTimeField(null=True, blank=True)
-    incorrect_count = models.IntegerField(default=0)
-    otp_count = models.IntegerField(default=0)
-    verified = models.BooleanField(default=False)

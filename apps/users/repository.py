@@ -1,10 +1,11 @@
 import socket
 import random
+import datetime
 from django.db import transaction
 from django.utils import timezone
 
 from apps.shared.middleware.middleware import get_logger
-from apps.users.models import User, UserDevice, UserAuthOtp, UserPasswordReset, OtpSentLog
+from apps.users.models import User, UserDevice, UserAuthOtp
 from django.core.mail import send_mail as send_otp
 from django.conf import settings
 from django.core.mail import send_mail as send_otp
@@ -48,83 +49,9 @@ def send_otp_email(email, otp_code):
     except BadHeaderError:
         return {"success": False, "message": "Invalid email header"}
 
-    # except SMTPException as e:
-    #     return {"success": False, "message": f"SMTP error: {str(e)}"}
-
     except Exception as e:
         return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
-
-
-def check_generate_otp(user: User):
-    new_code = str(random.randint(1000, 9999))
-
-    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=1)
-
-    otp = UserPasswordReset.objects.select_related('user').filter(user=user).first()
-
-    if otp:
-        # Only count - no need for select_related
-        sent_count = OtpSentLog.objects.filter(email=user.email, created_at__gte=today_start).count()
-        if sent_count >= 5:
-            return None
-
-        otp.code = new_code
-        otp.incorrect_count = 0
-        otp.otp_created_at = timezone.now()
-        otp.otp_count += 1
-        otp.verified = False
-    else:
-        otp = UserPasswordReset.objects.create(user=user, code=new_code, otp_created_at=timezone.now(), otp_count=1, verified=False)
-
-    otp.save()
-    return otp
-
-
-def get_user_password_reset_by_id(reset_id):
-    try:
-        return UserPasswordReset.objects.select_related('user').filter(id=reset_id).first()
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-def get_user_password_reset_by_token(reset_token):
-    try:
-        return UserPasswordReset.objects.select_related('user').filter(reset_token=reset_token).first()
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-
-# def check_generate_auth_otp(user_role: UserRole):
-#     new_code = str(random.randint(1000, 9999))
-
-#     if user_role.user.email == 'sirojiddinovsolohiddin961@gmail.com':
-#         new_code = '2222'
-
-#     today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=1)
-
-#     otp = UserAuthOtp.objects.select_related('user_role__user').filter(user_role=user_role).first()
-
-#     if otp:
-#         # Only count - no need for select_related
-#         sent_count = OtpSentLog.objects.filter(email=user_role.user.email, created_at__gte=today_start).count()
-
-#         if sent_count >= 100:
-#             return None
-
-#         otp.code = new_code
-#         otp.incorrect_count = 0
-#         otp.otp_created_at = timezone.now()
-#         otp.verified = False
-#     else:
-#         otp = UserAuthOtp.objects.create(user_role=user_role, code=new_code, otp_created_at=timezone.now(),
-#                                          verified=False)
-
-#     otp.save()
-#     return otp
 
 
 def get_user_by_username(email):
@@ -136,7 +63,7 @@ def get_user_by_username(email):
 
 
 def create_user(email, full_name, phone_number,
-                otp, otp_created_at,password, language="UZ", is_active=True):
+                otp, otp_created_at,password):
     try:
         # Ensure `username` (which is unique on the AbstractUser) is set
         # When USERNAME_FIELD is changed to `email` but the `username` column still
@@ -150,8 +77,7 @@ def create_user(email, full_name, phone_number,
             phone_number=phone_number,
             otp=otp,
             otp_created_at=otp_created_at,
-            language=language,
-            # is_active=is_active
+            is_active=True,
         )
         user.set_password(password)
         user.save()
@@ -234,17 +160,6 @@ def delete_user_device_by_user_role_device(user, role, device_id):
         raise e
 
 
-def update_user_role_location(user, lat, longitude):
-    try:
-        user.lat = lat
-        user.longitude = longitude
-        user.save()
-        return user
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
 def update_user_referral_code(user_referral, invite_ref_code):
     try:
         user_referral.invite_ref_code = invite_ref_code
@@ -256,44 +171,11 @@ def update_user_referral_code(user_referral, invite_ref_code):
         raise e
 
 
-def update_user_password_reset_incorrect_count(password_reset):
-    try:
-        password_reset.incorrect_count += 1
-        password_reset.save()
-        return password_reset
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-def update_user_password_reset_verified(password_reset, reset_token):
-    try:
-        password_reset.reset_token = reset_token
-        password_reset.reset_token_created_at = timezone.now()
-        password_reset.verified = True
-        password_reset.save()
-        return password_reset
-    except Exception as e:
-        logger.exception(e)
-        raise e
-    
-
 def update_user_role_password(user_role, password):
     try:
         user_role.password = password
         user_role.save()
         return user_role
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-def clear_user_password_reset_token(password_reset):
-    try:
-        password_reset.reset_token = None
-        password_reset.reset_token_created_at = None
-        password_reset.save()
-        return password_reset
     except Exception as e:
         logger.exception(e)
         raise e
@@ -372,35 +254,6 @@ def get_user_by_userid(id):
         raise e
 
 
-# def get_user_role_by_email_and_role(email, role):
-#     try:
-#         return UserRole.objects.filter(user__email=email, role=role).first()
-#         # return UserRole.objects.select_related('user').filter(user__email=email, role=role).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-# def get_user_role_by_id(user_role_id):
-#     try:
-#         return UserRole.objects.select_related('user').filter(id=user_role_id).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-# def get_user_role_by_user_and_role(user, role, is_verified=True):
-#     try:
-#         return UserRole.objects.select_related('user').filter(
-#             user=user,
-#             role=role,
-#             is_verified=is_verified
-#         ).first()
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
 def create_user_simple(username, full_name, phone=None, email=None):
     """Create a simple user without password (for OAuth/Click integration)"""
     try:
@@ -416,42 +269,68 @@ def create_user_simple(username, full_name, phone=None, email=None):
         raise e
 
 
-# def get_or_create_user_role_simple(user, role):
-#     """Get or create a user role without OTP (for OAuth/Click integration)"""
-#     try:
-#         user_role = UserRole.objects.select_related('user').filter(user=user, role=role).first()
-#         if not user_role:
-#             user_role = UserRole.objects.create(
-#                 user=user,
-#                 role=role,
-#                 is_active=True,
-#                 is_verified=True
-#             )
-#         return user_role
-#     except Exception as e:
-#         logger.exception(e)
-#         raise e
-
-
-def update_user_role_mini_app(user_role, mini_app=True):
-    """Update mini_app flag for user role"""
-    try:
-        user_role.mini_app = mini_app
-        user_role.is_active = True
-        user_role.is_verified = True
-        user_role.save()
-        return user_role
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
 def update_user_otp(user_id, otp, otp_created_at):
     try:
         User.objects.filter(id=user_id).update(
             otp=otp,
             otp_created_at=otp_created_at
         )
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def validate_and_increment_otp_send_limit(user_id: int):
+    try:
+        now = timezone.now()
+        user = User.objects.filter(id=user_id).first()
+        if user is None:
+            return enum.ResultCodes.USER_ROLE_NOT_FOUND
+
+        latest_otp = UserAuthOtp.objects.filter(user=user).order_by("-otp_created_at").first()
+        if latest_otp and latest_otp.otp_created_at:
+            if (now - latest_otp.otp_created_at).total_seconds() < 40:
+                return enum.ResultCodes.OTP_ALREADY_SENT
+
+        hour_start = now - datetime.timedelta(hours=1)
+        hour_count = UserAuthOtp.objects.filter(user=user, otp_created_at__gte=hour_start).count()
+        if hour_count >= 5:
+            return enum.ResultCodes.OTP_HOURLY_LIMIT_REACHED
+
+        day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_count = UserAuthOtp.objects.filter(user=user, otp_created_at__gte=day_start).count()
+        if day_count >= 10:
+            return enum.ResultCodes.OTP_DAILY_LIMIT_REACHED
+
+        return None
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+def create_user_auth_otp_log(user: User, code: int | str, otp_created_at):
+    try:
+        return UserAuthOtp.objects.create(
+            user=user,
+            code=int(code),
+            otp_created_at=otp_created_at,
+            is_used=False,
+            incorrect_count=0,
+            verified=False,
+        )
+    except Exception as e:
+        logger.exception(e)
+        raise e
+    
+def set_otp_as_used(user: User, code: int):
+    try:
+        otp = UserAuthOtp.objects.filter(user=user, code=int(code)).first()
+        if not otp:
+            raise ValueError("OTP not found")
+        otp.is_used = True
+        otp.verified = True
+        otp.save()
+        return otp
     except Exception as e:
         logger.exception(e)
         raise e

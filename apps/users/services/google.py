@@ -3,6 +3,7 @@ from rest_framework import status
 from apps.shared.utils import SuccessResponse, ErrorResponse
 from apps.users.models import User
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shared.enum import ResultCodes
@@ -12,10 +13,8 @@ GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET
 REDIRECT_URI = settings.GOOGLE_REDIRECT_URI
 
+@extend_schema(tags=["google"], summary="Redirects user to Google for authentication")
 class GoogleLoginRedirect(APIView):
-    """
-    Redirects the user to Google OAuth login page
-    """
     def get(self, request):
         google_url = (
             "https://accounts.google.com/o/oauth2/v2/auth"
@@ -28,6 +27,7 @@ class GoogleLoginRedirect(APIView):
         return redirect(google_url)
     
 
+@extend_schema(tags=["google"], summary="Handles Google OAuth callback")
 class GoogleCallback(APIView):
     """
     Handles Google OAuth callback, registers/logs in the user
@@ -65,13 +65,11 @@ class GoogleCallback(APIView):
         user, created = User.objects.get_or_create(email=email, defaults={
             "full_name": user_info.get("given_name", ""),
             "username": email,
-            "is_active": True,  # auto-activate
+            "is_active": True,
         }) 
 
-        # Store extra Google data if needed
         user.is_verified = True
         user.is_from_social = True
-        # Ensure password is marked unusable instead of None to avoid auth errors
         if not user.has_usable_password():
             user.set_unusable_password()
         user.save()

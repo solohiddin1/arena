@@ -26,17 +26,6 @@ DEBUG = env_bool('DEBUG', True)
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '127.0.0.1,localhost')
 
-# CSRF_TRUSTED_ORIGINS = [
-#     "http://127.0.0.1:8000",
-#     "http://localhost:8000",
-# ]
-# SESSION_COOKIE_SECURE = False
-# CSRF_COOKIE_SECURE = False
-
-
-
-# Application definition
-
 BASE_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -61,7 +50,6 @@ LIBS = [
     'drf_spectacular',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
-    'modern_drf_swagger',
 ]
 
 INSTALLED_APPS = BASE_APPS + APPS + LIBS
@@ -122,20 +110,15 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # 'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'PLAYZONE API',
+    'TITLE': 'JoyQidir API',
     'VERSION': '1.0.0',
-    'DESCRIPTION': 'Here is API documentation for PLAYZONE',
+    'DESCRIPTION': 'Here is API documentation for JoyQidir',
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# REST_FRAMEWORK = {
-#         'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-#         # ... other DRF settings
-# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -250,3 +233,6 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '')
 CHAT_ID = os.getenv('CHAT_ID', '')
 BREVO_EMAIL_API_KEY = os.getenv('BREVO_EMAIL_API_KEY', '')
 BREVO_EMAIL_API_EMAIL = os.getenv('BREVO_EMAIL_API_EMAIL', '')
+
+TELEGRAM_GATEWAY_URL = os.getenv('TELEGRAM_GATEWAY_URL')
+TELEGRAM_GATEWAY_TOKEN = os.getenv('TELEGRAM_GATEWAY_TOKEN')

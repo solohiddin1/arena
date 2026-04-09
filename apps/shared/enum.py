@@ -8,32 +8,20 @@ class ResultCodes(Enum):
     USER_NOT_FOUND = -3
     WRONG_VERIFICATION_CODE = -4
     INVALID_CREDENTIALS = -5
-    INVALID_REFRESH_TOKEN = -6
-    PRODUCT_IMAGE_NOT_FOUND = -11
-    PRODUCT_IMAGE_NOT_CREATED = -12
-    PRODUCT_NOT_CREATED = -13
-    PRODUCT_NOT_UPDATED = -14
-    VALIDATION_ERROR = -15
-    INTERNAL_SERVER_ERROR = -17
-    BUSINESS_NOT_FOUND = -18
     USER_ROLE_NOT_FOUND = -19
     USER_IS_NOT_VERIFIED = -20
-    USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS = -22
     OTP_EXPIRED = -21
-    SERVER_ERROR = -23
-    DEVICE_ALREADY_REGISTERED = -25
-    ALREADY_VERIFIED = -57
+    USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS = -22
     OTP_INCORRECT = -59
     INVALID_RESET_TOKEN = -60
     OTP_ALREADY_SENT = -61
     ERROR_SMS_SERVICE = -62
+    OTP_HOURLY_LIMIT_REACHED = -63
+    OTP_DAILY_LIMIT_REACHED = -64
+    NO_CODE_PROVIDED = -65
+    FAILED_TO_OBTAIN_TOKEN = -66
 
 ResultMessages = {
-    "SUCCESS": {
-        "uz": "Muvaffaqiyatli bajarildi!",
-        "en": "Success!",
-        "ru": "Успешно!"
-    },
     "USER_IS_NOT_VERIFIED": {
         "uz": "User vefikatsiyadan o'tmaga",
         "ru": "User ne verifitsirovan",
@@ -69,46 +57,6 @@ ResultMessages = {
         "en": "Invalid credentials!",
         "ru": "Неверный логин или пароль!"
     },
-    "INVALID_REFRESH_TOKEN": {
-        "uz": "Refresh token yaroqsiz!",
-        "en": "Invalid refresh token!",
-        "ru": "Неверный refresh token!"
-    },
-    "PRODUCT_IMAGE_NOT_FOUND": {
-        "uz": "Mahsulot rasmi topilmadi!",
-        "en": "Product image not found!",
-        "ru": "Изображение товара не найдено!"
-    },
-    "PRODUCT_IMAGE_NOT_CREATED": {
-        "uz": "Mahsulot rasmi yaratilmagan!",
-        "en": "Product image not created!",
-        "ru": "Изображение товара не создано!"
-    },
-    "PRODUCT_NOT_CREATED": {
-        "uz": "Mahsulot yaratilmagan!",
-        "en": "Product not created!",
-        "ru": "Товар не создан!"
-    },
-    "PRODUCT_NOT_UPDATED": {
-        "uz": "Mahsulot yangilanmadi!",
-        "en": "Product not updated!",
-        "ru": "Товар не обновлён!"
-    },
-    "VALIDATION_ERROR": {
-        "uz": "Tasdiqlash xatosi yuz berdi!",
-        "en": "Validation error!",
-        "ru": "Ошибка валидации!"
-    },
-    "INTERNAL_SERVER_ERROR": {
-        "uz": "Ichki server xatosi!",
-        "en": "Internal server error!",
-        "ru": "Внутренняя ошибка сервера!"
-    },
-    "BUSINESS_NOT_FOUND": {
-        "uz": "Biznes topilmadi!",
-        "en": "Business not found!",
-        "ru": "Бизнес не найден!"
-    },
     "USER_ROLE_NOT_FOUND": {
         "uz": "Foydalanuvchi  topilmadi!",
         "en": "User  not found!",
@@ -118,16 +66,6 @@ ResultMessages = {
         "uz": "OTP muddati tugagan!",
         "en": "OTP has expired!",
         "ru": "Срок действия OTP истёк!"
-    },
-    "SERVER_ERROR": {
-        "uz": "Server xatosi!",
-        "en": "Server error!",
-        "ru": "Ошибка сервера!"
-    },
-    "ALREADY_VERIFIED": {
-        "uz": "ALREADY_VERIFIED",
-        "en": "ALREADY_VERIFIED",
-        "ru": "ALREADY_VERIFIED"
     },
     "OTP_INCORRECT": {
         "uz": "Noto‘g‘ri OTP kiritildi!",
@@ -148,5 +86,25 @@ ResultMessages = {
         "uz": "SMS xizmatida xatolik yuz berdi!",
         "en": "Error in SMS service!",
         "ru": "Ошибка в SMS сервисе!"
+    },
+    "OTP_HOURLY_LIMIT_REACHED": {
+        "uz": "Soatlik OTP limitiga yetdingiz (5 ta).",
+        "en": "Hourly OTP limit reached (5).",
+        "ru": "Достигнут почасовой лимит OTP (5)."
+    },
+    "OTP_DAILY_LIMIT_REACHED": {
+        "uz": "Kunlik OTP limitiga yetdingiz (10 ta).",
+        "en": "Daily OTP limit reached (10).",
+        "ru": "Достигнут дневной лимит OTP (10)."
+    },
+    "NO_CODE_PROVIDED": {
+        "uz": "Google authorization code topilmadi.",
+        "en": "Google authorization code was not provided.",
+        "ru": "Код авторизации Google не был передан."
+    },
+    "FAILED_TO_OBTAIN_TOKEN": {
+        "uz": "Google token olib bo'lmadi.",
+        "en": "Failed to obtain Google token.",
+        "ru": "Не удалось получить токен Google."
     }
 }

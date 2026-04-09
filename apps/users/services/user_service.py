@@ -1,10 +1,7 @@
 import concurrent.futures
 import datetime
-import secrets
-import string
 
 from django.contrib.auth import authenticate
-from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -12,21 +9,16 @@ from apps.shared.enum import ResultCodes
 from apps.shared.send_email import send_email_from_server_from_brevo
 from apps.shared.utils import get_logger
 from apps.users.repository import (
-	check_generate_otp,
-	clear_user_password_reset_token,
+	create_user_auth_otp_log,
 	create_user,
 	generate_otp,
 	get_user_by_username,
 	get_user_by_userid,
-	get_user_password_reset_by_id,
-	get_user_password_reset_by_token,
 	send_otp_email,
 	update_user_otp,
-	update_user_password_reset_incorrect_count,
-	update_user_password_reset_verified,
-	update_user_role_location,
-	update_user_role_password,
 	update_user_set_verified,
+	validate_and_increment_otp_send_limit,
+	set_otp_as_used,
 )
 from apps.users.tasks import send_telegram_message_celery
 
@@ -55,37 +47,40 @@ class UserService:
 				raise Exception("OTP sending timed out")
 
 	def register_user(self, req_body: dict):
-		otp = generate_otp()
 		email = req_body["email"]
 		full_name = req_body.get("full_name", "")
 		password = req_body["password"]
 
 		user = get_user_by_username(email)
-		send_telegram_message_celery.delay(
-			f"user is registering with email: {email},"
-			f"and full_name: {full_name} with password: {password}"
-		)
-		self.logger.info(f"user is registered with email: {email}")
 
 		if user is None:
 			user = create_user(
 				email=email,
 				full_name=full_name,
 				phone_number=req_body.get("phone_number", ""),
-				otp=otp,
-				otp_created_at=timezone.now(),
-				language="UZ",
+				otp=None,
+				otp_created_at=None,
 				password=password,
-				is_active=False,
 			)
 		else:
 			if user.is_verified:
 				return {"error": ResultCodes.USER_ALREADY_REGISTERED}
-			update_user_otp(user.id, otp, timezone.now())
 
+		limit_error = validate_and_increment_otp_send_limit(user.id)
+		if limit_error:
+			return {"error": limit_error}
+
+		otp = generate_otp()
+		update_user_otp(user.id, otp, timezone.now())
+
+		send_telegram_message_celery.delay(
+			f"user is registering with email: {email},"
+			f"and full_name: {full_name}, with otp: {otp}"
+		)
 		send_result = self._send_otp_with_fallback(email, otp)
 		if not send_result:
 			return {"error": ResultCodes.ERROR_SMS_SERVICE}
+		create_user_auth_otp_log(user=user, code=otp, otp_created_at=timezone.now())
 
 		return {
 			"data": {
@@ -101,7 +96,7 @@ class UserService:
 	def verify_registration_otp(self, user_id: int, code: str):
 		user = get_user_by_userid(user_id)
 		if user is None:
-			return {"error": ResultCodes.USER_ROLE_NOT_FOUND}
+			return {"error": ResultCodes.USER_NOT_FOUND}
 		if user.is_verified:
 			return {"error": ResultCodes.USER_ALREADY_REGISTERED}
 
@@ -115,8 +110,9 @@ class UserService:
 			return {"error": ResultCodes.OTP_EXPIRED}
 
 		if user.otp != code:
-			return {"error": ResultCodes.WRONG_VERIFICATION_CODE}
+			return {"error": ResultCodes.WRONG_VERIFICATION_CODE}		
 
+		set_otp_as_used(user, code)
 		update_user_set_verified(user.id)
 		token = RefreshToken.for_user(user)
 		return {"data": {"refresh": str(token), "access": str(token.access_token)}}
@@ -137,62 +133,62 @@ class UserService:
 	def request_forgot_password_otp(self, email: str):
 		user = get_user_by_username(email)
 		if not user:
-			return {"error": ResultCodes.USER_ROLE_NOT_FOUND}
+			return {"error": ResultCodes.USER_NOT_FOUND}
 
-		otp = check_generate_otp(user)
-		if not otp:
-			return {"error": ResultCodes.DAILY_LIMIT_REACHED}
+		limit_error = validate_and_increment_otp_send_limit(user.id)
+		if limit_error:
+			return {"error": limit_error}
 
-		send_result = self._send_otp_with_fallback(email, otp.code)
+		otp = generate_otp()
+		update_user_otp(user.id, otp, timezone.now())
+
+		send_result = self._send_otp_with_fallback(email, otp)
 		if not send_result:
 			return {"error": ResultCodes.ERROR_SMS_SERVICE}
+		create_user_auth_otp_log(user=user, code=otp, otp_created_at=timezone.now())
 
 		return {
 			"data": {
-				"reset_id": otp.id,
-				"otp": otp.code,
-				"message": "Email sent successfully!!!",
+				"email": user.email,
+				"otp": otp,
+				"message": "OTP sent successfully",
 			}
 		}
 
-	def verify_forgot_password(self, reset_id: int, code: str):
-		otp_obj = get_user_password_reset_by_id(reset_id)
-		if not otp_obj:
-			return {"error": ResultCodes.UNKNOWN_ERROR}
-		if otp_obj.verified:
-			return {"error": ResultCodes.ALREADY_VERIFIED}
-		if otp_obj.incorrect_count >= 3:
-			return {"error": ResultCodes.OTP_INCORRECT_CNT}
-		if timezone.now() - otp_obj.otp_created_at > datetime.timedelta(minutes=3):
+	def verify_forgot_password(self, email: str, code: str):
+		user = get_user_by_username(email)
+		if not user:
+			return {"error": ResultCodes.USER_NOT_FOUND}
+
+		if not user.otp or not user.otp_created_at:
+			return {"error": ResultCodes.WRONG_VERIFICATION_CODE}
+
+		if timezone.now() - user.otp_created_at > datetime.timedelta(minutes=3):
 			return {"error": ResultCodes.OTP_EXPIRED}
 
-		if otp_obj.code != code:
-			update_user_password_reset_incorrect_count(otp_obj)
+		if user.otp != code:
 			return {"error": ResultCodes.OTP_INCORRECT}
 
-		while True:
-			reset_token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
-			if not get_user_password_reset_by_token(reset_token):
-				break
+		return {"data": {"verified": True, "message": "Verification success"}}
 
-		update_user_password_reset_verified(otp_obj, reset_token)
-		return {"data": {"reset_token": reset_token, "message": "Verification success!!!"}}
+	def apply_new_password(self, email: str, code: str, password: str):
+		user = get_user_by_username(email)
+		if not user:
+			return {"error": ResultCodes.USER_NOT_FOUND}
 
-	def apply_new_password(self, reset_token: str, password: str):
-		otp_obj = get_user_password_reset_by_token(reset_token)
-		if not otp_obj:
+		if not user.otp or not user.otp_created_at:
 			return {"error": ResultCodes.INVALID_RESET_TOKEN}
-		if not otp_obj.verified:
-			return {"error": ResultCodes.ALREADY_VERIFIED}
-		if timezone.now() - otp_obj.reset_token_created_at > datetime.timedelta(minutes=15):
+
+		if timezone.now() - user.otp_created_at > datetime.timedelta(minutes=15):
 			return {"error": ResultCodes.OTP_EXPIRED}
 
-		user = get_user_by_username(otp_obj.user.email)
-		update_user_role_password(user, make_password(password))
-		clear_user_password_reset_token(otp_obj)
+		if user.otp != code:
+			return {"error": ResultCodes.OTP_INCORRECT}
 
-		return {"data": {"message": "Successfully set new password!!!"}}
+		user.set_password(password)
+		user.otp = None
+		user.otp_created_at = None
+		user.save(update_fields=["password", "otp", "otp_created_at"])
 
-	def update_user_location(self, user, lat, longitude):
-		update_user_role_location(user, lat, longitude)
-		return {"data": {"message": "Location updated"}}
+		return {"data": {"message": "Successfully set new password"}}
+

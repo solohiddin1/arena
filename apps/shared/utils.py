@@ -49,15 +49,6 @@ def ErrorResponse(result: ResultCodes, message=None):
 
 
 def parse_json_items_to_dict_list(raw: Any) -> List[Dict[str, Any]]:
-    """Normalize incoming JSON/multipart field into a list of dicts.
-
-    Accepts:
-    - str: JSON object or JSON array string
-    - dict: returned as a single-item list
-    - list/tuple: items may be dicts or JSON strings (object/array)
-
-    Returns a list of dicts. Invalid or unparsable items are skipped.
-    """
     items: List[Dict[str, Any]] = []
     if isinstance(raw, str):
         try:

@@ -12,3 +12,4 @@ db.sqlite3
 media/
 test_telegram_otp.py
 coderabbit.yaml
+.idea

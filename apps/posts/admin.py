@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from gunicorn.config import Workers
 
-from apps.posts.models import Post, Feedback, Category, PostImage
+from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays
 
 def make_accepted(modeladmin, request, queryset):
     queryset.update(state='ACCEPTED')
@@ -19,6 +20,9 @@ def make_checking(modeladmin, request, queryset):
     queryset.update(state='CHECKING')
 make_checking.short_description = "Mark CHECKING"
 
+class WorkHoursInline(admin.TabularInline):
+    model = PostWorkDays
+    extra = 0
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
@@ -26,6 +30,8 @@ class PostAdmin(admin.ModelAdmin):
     search_fields = ('title', 'location_title', 'owner__email')
     list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category')
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]
+    inlines = [WorkHoursInline]
+
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):

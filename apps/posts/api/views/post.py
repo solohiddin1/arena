@@ -95,11 +95,11 @@ class MyPostListView(GenericAPIView):
                 "cost": {"type": "number", "format": "float", "description": "Post cost"},
                 "lat": {"type": "number", "format": "float", "description": "Latitude"},
                 "long": {"type": "number", "format": "float", "description": "Longitude"},
-                "state": {
-                    "type": "string",
-                    "description": "Post state",
-                    "enum": ["CHECKING", "ACCEPTED", "CANCELLED", "FROZEN"],
-                },
+                # "state": {
+                #     "type": "string",
+                #     "description": "Post state",
+                #     "enum": ["CHECKING", "ACCEPTED", "CANCELLED", "FROZEN"],
+                # },
                 "region": {"type": "integer", "description": "Region id"},
                 "district": {"type": "integer", "description": "District id"},
                 "category": {"type": "integer", "description": "Category id"},
@@ -107,6 +107,14 @@ class MyPostListView(GenericAPIView):
                     "type": "array",
                     "items": {"type": "string", "format": "binary"},
                     "description": "Post images. You can upload multiple files.",
+                },
+                "work_hours": {
+                    "type": "string",
+                    "example": '[{"days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],'
+                               '"start_time":"08:00","end_time":"20:00"},{"days":["SATURDAY"],'
+                               '"start_time":"10:00","end_time":"16:00"},{"days":["SUNDAY"],'
+                               '"is_closed":true}]',
+                    "description": "JSON string. Groups of days sharing the same hours.",
                 },
             },
             "required": ["title", "cost"],

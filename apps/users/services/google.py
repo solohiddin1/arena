@@ -1,6 +1,8 @@
 import requests
-from rest_framework import status
+from rest_framework.generics import GenericAPIView
+
 from apps.shared.utils import SuccessResponse, ErrorResponse
+from apps.users.api.serializers.mobile_auth import GoogleMobileAuthSerializer
 from apps.users.models import User
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
@@ -24,7 +26,7 @@ class GoogleLoginRedirect(APIView):
             "&scope=openid%20email%20profile"
             "&access_type=offline"
         )
-        return redirect(google_url)
+        return SuccessResponse(result=google_url)
     
 
 @extend_schema(tags=["google"], summary="Handles Google OAuth callback")
@@ -94,4 +96,41 @@ class GoogleCallback(APIView):
         return redirect(redirect_url)
 
         # return redirect(redirect_url)
+
+
+@extend_schema(tags=["google"],
+               summary="Mobile Google auth - exchange Google id_token for JWT")
+class GoogleMobileAuth(GenericAPIView):
+    serializer_class = GoogleMobileAuthSerializer
+    def post(self, request):
+        id_token_str = request.data.get("id_token")
+        if not id_token_str:
+            return ErrorResponse(ResultCodes.NO_CODE_PROVIDED)
+
+        r = requests.get("https://oauth2.googleapis.com/tokeninfo", params={"id_token": id_token_str})
+        if r.status_code != 200:
+            return ErrorResponse(ResultCodes.FAILED_TO_OBTAIN_TOKEN)
+
+        user_info = r.json()
+        if user_info.get("aud") != GOOGLE_CLIENT_ID:
+            return ErrorResponse(ResultCodes.FAILED_TO_OBTAIN_TOKEN)
+
+        email = user_info.get("email")
+        user, created = User.objects.get_or_create(email=email, defaults={
+            "full_name": user_info.get("given_name", ""),
+            "username": email,
+            "is_active": True,
+        })
+
+        user.is_verified = True
+        user.is_from_social = True
+        if not user.has_usable_password():
+            user.set_unusable_password()
+        user.save()
+
+        token = RefreshToken.for_user(user)
+        return SuccessResponse(result={
+            "access": str(token.access_token),
+            "refresh": str(token),
+        })
 

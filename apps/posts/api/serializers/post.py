@@ -1,6 +1,8 @@
+import json
+
 from rest_framework import serializers
 
-from apps.posts.models import Category, Post, PostImage
+from apps.posts.models import Category, Post, PostImage, PostWorkDays
 from apps.users.api.serializers.profile import UserProfileSerializer
 from apps.shared.serializers import PostRegionSerializer, PostDistrictSerializer
 
@@ -9,6 +11,23 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ("id", "title", "image")
+
+
+class PostWorkDaysSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostWorkDays
+        fields = ("id", "day_of_week", "start_time", "end_time", "is_closed", "is_full_time")
+
+
+class WorkHoursGroupSerializer(serializers.Serializer):
+    days = serializers.ListField(
+        child=serializers.ChoiceField(choices=[d[0] for d in PostWorkDays.DAYS_OF_WEEK]),
+        min_length=1,
+    )
+    start_time = serializers.TimeField(required=False, allow_null=True)
+    end_time = serializers.TimeField(required=False, allow_null=True)
+    is_closed = serializers.BooleanField(default=False, required=False)
+    is_full_time = serializers.BooleanField(default=False, required=False)
 
 
 class PostImagesSerializer(serializers.ModelSerializer):
@@ -26,6 +45,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
     district = PostDistrictSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     images = serializers.SerializerMethodField()
+    work_days = PostWorkDaysSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
@@ -46,6 +66,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "average_rating",
             "total_feedbacks",
             "distance_km",
+            "work_days",
             "created_at",
             "updated_at",
         )
@@ -86,6 +107,7 @@ class PostListSerializer(PostBaseSerializer):
             "average_rating",
             "total_feedbacks",
             "distance_km",
+            "work_days",
             "created_at",
             "updated_at",
             "related_posts",
@@ -102,6 +124,8 @@ class PostListSerializer(PostBaseSerializer):
         
 
 class PostWriteSerializer(serializers.ModelSerializer):
+    work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
+
     class Meta:
         model = Post
         fields = (
@@ -113,7 +137,20 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "region",
             "district",
             "category",
+            "work_hours",
         )
+
+    def validate_work_hours(self, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid JSON.")
+        s = WorkHoursGroupSerializer(data=value, many=True)
+        s.is_valid(raise_exception=True)
+        return list(s.validated_data)
 
     def validate(self, attrs):
         lat = attrs.get("lat")

@@ -20,12 +20,18 @@ class ResultCodes(Enum):
     OTP_DAILY_LIMIT_REACHED = -64
     NO_CODE_PROVIDED = -65
     FAILED_TO_OBTAIN_TOKEN = -66
+    INTERNAL_SERVER_ERROR = -10
 
 ResultMessages = {
     "USER_IS_NOT_VERIFIED": {
         "uz": "User vefikatsiyadan o'tmaga",
         "ru": "User ne verifitsirovan",
         "en": "User is not verified"
+    },
+    "INTERNAL_SERVER_ERROR": {
+        "uz": "Ichki server xatosi!",
+        "en": "Internal server error!",
+        "ru": "Произошла ошибка. Пожалуйста, попробуйте позже!"
     },
     "UNKNOWN_ERROR": {
         "uz": "Noma'lum xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko‘ring!",

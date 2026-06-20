@@ -2,7 +2,7 @@ import math
 
 from django.db.models import Avg, QuerySet
 
-from apps.posts.models import Category, Feedback, Post, PostImage
+from apps.posts.models import Category, Feedback, Post, PostImage, PostWorkDays
 
 
 class PostService:
@@ -55,7 +55,12 @@ class PostService:
         return 6371.0 * c
 
     def get_post(self, post_id: int, include_hidden: bool = False) -> Post | None:
-        queryset = Post.objects.filter(state="ACCEPTED").select_related("owner", "region", "district", "category").filter(id=post_id)
+        queryset = (
+            Post.objects.filter(state="ACCEPTED")
+            .select_related("owner", "region", "district", "category")
+            .prefetch_related("work_days")
+            .filter(id=post_id)
+        )
         if not include_hidden:
             queryset = queryset.filter(is_hidden=False)
         return queryset.first()
@@ -63,6 +68,7 @@ class PostService:
     def list_my_posts(self, user, include_hidden: bool = False):
         queryset = (
             Post.objects.select_related("owner", "region", "district", "category")
+            .prefetch_related("work_days")
             .filter(owner=user)
             .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
             .order_by("-created_at")
@@ -72,7 +78,7 @@ class PostService:
         return queryset
 
     def list_posts(self, filters: dict):
-        queryset = Post.objects.select_related("owner", "region", "district", "category").filter(
+        queryset = Post.objects.select_related("owner", "region", "district", "category").prefetch_related("work_days").filter(
             is_hidden=False
         ).annotate(
             avg_rating_value=Avg("post_feedbacks__rating")
@@ -129,7 +135,26 @@ class PostService:
         return nearby_posts
 
     def create_post(self, owner, validated_data: dict) -> Post:
-        return Post.objects.create(owner=owner, **validated_data)
+        work_hours = validated_data.pop("work_hours", None)
+        post = Post.objects.create(owner=owner, **validated_data)
+        if work_hours:
+            self._create_work_days(post, work_hours)
+        return post
+
+    def _create_work_days(self, post: Post, work_hours: list) -> None:
+        entries = []
+        for group in work_hours:
+            days = group["days"]
+            for day in days:
+                entries.append(PostWorkDays(
+                    post=post,
+                    day_of_week=day,
+                    start_time=group.get("start_time"),
+                    end_time=group.get("end_time"),
+                    is_closed=group.get("is_closed", False),
+                    is_full_time=group.get("is_full_time", False),
+                ))
+        PostWorkDays.objects.bulk_create(entries)
 
     def create_post_images(self, post: Post, image_files) -> None:
         if not image_files:
@@ -137,9 +162,13 @@ class PostService:
         PostImage.objects.bulk_create([PostImage(post=post, image=image_file) for image_file in image_files])
 
     def update_post(self, post: Post, validated_data: dict) -> Post:
+        work_hours = validated_data.pop("work_hours", None)
         for attr, value in validated_data.items():
             setattr(post, attr, value)
         post.save()
+        if work_hours is not None:
+            post.work_days.all().delete()
+            self._create_work_days(post, work_hours)
         return post
 
     def delete_post(self, post: Post) -> None:

@@ -2,7 +2,7 @@ from django.urls import path
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from apps.users.services.google import GoogleCallback, GoogleLoginRedirect
+from apps.users.services.google import GoogleCallback, GoogleLoginRedirect, GoogleMobileAuth
 from apps.users.api.views.apply_new_password import ApplyNewPassword
 from apps.users.api.views.check_register import CheckRegister
 from apps.users.api.views.login_user import LoginUser
@@ -34,7 +34,8 @@ urlpatterns = [
     path("password-reset/", ApplyNewPassword.as_view(), name="password_reset"),
     
     # google auth
-    path('auth/google/login/', GoogleLoginRedirect.as_view(), name='google_login'),
+    path('auth/google/login/', GoogleMobileAuth.as_view(), name='google_login'),
     path('accounts/google/login/callback/', GoogleCallback.as_view(), name='google_callback'),
+    # path('auth/google/mobile/', GoogleMobileAuth.as_view(), name='google_mobile_auth'),
 
 ]

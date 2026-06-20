@@ -9,9 +9,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "email",
-            "first_name",
-            "last_name",
             "phone_number",
+            "full_name",
             "image",
             "age",
             "is_active",
@@ -35,4 +34,4 @@ class UserProfileImageUpdateSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "phone_number"]
+        fields = ["full_name", "phone_number", "age"]

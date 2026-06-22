@@ -68,7 +68,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "title",
             "location_title",
             "images",
-            "cost",
+            "prices",
             "lat",
             "long",
             "state",
@@ -110,7 +110,7 @@ class PostListSerializer(PostBaseSerializer):
             "title",
             "location_title",
             "images",
-            "cost",
+            "prices",
             "lat",
             "long",
             "state",
@@ -141,6 +141,7 @@ class PostListSerializer(PostBaseSerializer):
 
 class PostWriteSerializer(serializers.ModelSerializer):
     work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
+    prices = serializers.CharField(required=False, allow_null=True, write_only=True)
     amenity_ids = serializers.PrimaryKeyRelatedField(
         queryset=Amenity.objects.all(),
         many=True,
@@ -154,7 +155,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
         fields = (
             "title",
             "location_title",
-            "cost",
+            "prices",
             "lat",
             "long",
             "region",
@@ -175,6 +176,21 @@ class PostWriteSerializer(serializers.ModelSerializer):
         s = WorkHoursGroupSerializer(data=value, many=True)
         s.is_valid(raise_exception=True)
         return list(s.validated_data)
+
+    def validate_prices(self, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid JSON.")
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Prices must be a list of objects.")
+        for item in value:
+            if not isinstance(item, dict) or 'name' not in item or 'value' not in item:
+                raise serializers.ValidationError("Each price must have 'name' and 'value'.")
+        return value
 
     def validate(self, attrs):
         lat = attrs.get("lat")

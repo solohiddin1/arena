@@ -113,9 +113,9 @@ class PostService:
         if min_rating is not None:
             queryset = queryset.filter(avg_rating_value__gte=min_rating)
         if min_cost:
-            queryset = queryset.filter(cost__gte=min_cost)
+            queryset = queryset.filter(prices__contains=[{'value': min_cost}]) # Note: This might not work perfectly with JSONField for GT/LT
         if max_cost:
-            queryset = queryset.filter(cost__lte=max_cost)
+            queryset = queryset.filter(prices__contains=[{'value': max_cost}])
         if search:
             queryset = queryset.filter(title__icontains=search)
 

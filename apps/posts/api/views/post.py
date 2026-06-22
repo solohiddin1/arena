@@ -92,7 +92,11 @@ class MyPostListView(GenericAPIView):
             "properties": {
                 "title": {"type": "string", "description": "Post title"},
                 "location_title": {"type": "string", "description": "Location title"},
-                "cost": {"type": "number", "format": "float", "description": "Post cost"},
+                "prices": {
+                    "type": "string",
+                    "example": '[{"name":"Entrance","value":10000},{"name":"Vip","value":50000}]',
+                    "description": "JSON string. List of prices with name and value.",
+                },
                 "lat": {"type": "number", "format": "float", "description": "Latitude"},
                 "long": {"type": "number", "format": "float", "description": "Longitude"},
                 # "state": {
@@ -117,7 +121,7 @@ class MyPostListView(GenericAPIView):
                     "description": "JSON string. Groups of days sharing the same hours.",
                 },
             },
-            "required": ["title", "cost"],
+            "required": ["title"],
         }
     },
     responses={200: PostListSerializer},

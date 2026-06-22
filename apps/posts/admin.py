@@ -27,7 +27,7 @@ class WorkHoursInline(admin.TabularInline):
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'owner', 'location_title', 'cost', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
+    list_display = ('id', 'title', 'owner', 'location_title', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
     search_fields = ('title', 'location_title', 'owner__email')
     list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category')
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]

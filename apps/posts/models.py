@@ -47,11 +47,11 @@ class Post(BaseModel):
     title = models.CharField(max_length=100, verbose_name="Post title", null=True)
     location_title = models.CharField(max_length=255, verbose_name="Location title", blank=True, null=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_posts')
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
     lat = models.FloatField(blank=True, null=True, verbose_name="Latitude")
     long = models.FloatField(blank=True, null=True, verbose_name="Longitude")
     comment_count = models.PositiveIntegerField(default=0)
     is_hidden = models.BooleanField(default=False, db_index=True)
+    prices = models.JSONField(default=list, blank=True, null=True)
 
     state = models.CharField(max_length=50, choices=post_states, default='CHECKING', verbose_name="Post state")
     region = models.ForeignKey("shared.Region", on_delete=models.SET_NULL, related_name='region_posts', blank=True, null=True)

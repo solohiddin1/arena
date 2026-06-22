@@ -57,6 +57,7 @@ INSTALLED_APPS = BASE_APPS + APPS + LIBS
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -118,6 +119,10 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'DESCRIPTION': 'Here is API documentation for JoyQidir',
     'SERVE_INCLUDE_SCHEMA': False,
+    'POSTPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.postprocess_schema_enums',
+        'apps.shared.openapi.add_accept_language_parameter',
+    ],
 }
 
 
@@ -152,13 +157,37 @@ LOGIN_URL = '/login/'
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = os.getenv('LANGUAGE_CODE', 'en-us')
+LANGUAGE_CODE = os.getenv('LANGUAGE_CODE', 'uz')
 
 TIME_ZONE = os.getenv('TIME_ZONE', 'UTC')
 
 USE_I18N = True
 
 USE_TZ = True
+
+# Languages supported across the API (Accept-Language header).
+LANGUAGES = [
+    ('uz', 'Uzbek'),
+    ('ru', 'Russian'),
+    ('en', 'English'),
+]
+
+LOCALE_PATHS = [BASE_DIR / 'locale']
+
+# django-parler: translatable model configuration.
+PARLER_DEFAULT_LANGUAGE_CODE = 'uz'
+
+PARLER_LANGUAGES = {
+    None: (
+        {'code': 'uz'},
+        {'code': 'ru'},
+        {'code': 'en'},
+    ),
+    'default': {
+        'fallback': 'uz',
+        'hide_untranslated': False,
+    },
+}
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=30),

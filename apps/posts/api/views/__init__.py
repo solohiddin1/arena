@@ -1,5 +1,6 @@
 from .feedback import PostFeedbackListView, PostFeedbackUpsertView
 from .post import (
+    AmenityListView,
     CategoryListView,
     MyPostListView,
     PostCreateView,
@@ -10,6 +11,7 @@ from .post import (
 )
 
 __all__ = [
+    "AmenityListView",
     "CategoryListView",
     "MyPostListView",
     "PostCreateView",

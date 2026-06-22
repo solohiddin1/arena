@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.posts.api.views import (
+    AmenityListView,
     CategoryListView,
     MyPostListView,
     PostCreateView,
@@ -22,4 +23,5 @@ urlpatterns = [
     path("feedback/list/<int:post_id>/", PostFeedbackListView.as_view(), name="post_feedback_list"),
     path("feedback/upsert/", PostFeedbackUpsertView.as_view(), name="post_feedback_upsert"),
     path("categories/", CategoryListView.as_view(), name="post_category_list"),
+    path("amenities/", AmenityListView.as_view(), name="post_amenity_list"),
 ]

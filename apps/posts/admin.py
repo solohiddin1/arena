@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from gunicorn.config import Workers
+from parler.admin import TranslatableAdmin
 
-from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays
+from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity
 
 def make_accepted(modeladmin, request, queryset):
     queryset.update(state='ACCEPTED')
@@ -51,6 +52,13 @@ class CategoryAdmin(admin.ModelAdmin):
         return "-"
 
     image_preview.short_description = 'Preview'
+
+@admin.register(Amenity)
+class AmenityAdmin(TranslatableAdmin):
+    # list_display = ('title', 'is_positive')
+    # search_fields = ('translations__title',)
+    list_filter = ('is_positive',)
+
 
 @admin.register(PostImage)
 class PostImageAdmin(admin.ModelAdmin):

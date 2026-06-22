@@ -2,6 +2,7 @@ from apps.users.models import User, BaseModel
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from parler.models import TranslatableModel, TranslatedFields
 
 class Feedback(BaseModel):
     name = models.CharField(max_length=100, blank=True, null=True)
@@ -21,6 +22,20 @@ class Feedback(BaseModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.post.title}"
+
+class Amenity(TranslatableModel, BaseModel):
+    translations = TranslatedFields(
+        title=models.CharField(max_length=100, verbose_name=_("title"), blank=True, null=True),
+    )
+    is_positive = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = _("Amenity")
+        verbose_name_plural = _("Amenities")
+
+    def __str__(self):
+        return self.safe_translation_getter("title", any_language=True) or f"Amenity #{self.pk}"
+
 
 class Post(BaseModel):
     post_states = (
@@ -42,6 +57,7 @@ class Post(BaseModel):
     region = models.ForeignKey("shared.Region", on_delete=models.SET_NULL, related_name='region_posts', blank=True, null=True)
     category = models.ForeignKey("Category", on_delete=models.SET_NULL, related_name='category_posts', blank=True, null=True)
     district = models.ForeignKey("shared.District", on_delete=models.SET_NULL, related_name='district_posts', blank=True, null=True)
+    amenities = models.ManyToManyField("Amenity", related_name='posts', blank=True)
 
     def __str__(self):
         return self.title

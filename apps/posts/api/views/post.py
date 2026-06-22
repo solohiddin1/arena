@@ -6,7 +6,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.posts.api.serializers.post import PostBaseSerializer, CategorySerializer, PostListSerializer, PostWriteSerializer
+from apps.posts.api.serializers.post import AmenitySerializer, PostBaseSerializer, CategorySerializer, PostListSerializer, PostWriteSerializer
 from apps.posts.services import PostService
 from apps.shared.utils import SuccessResponse
 from apps.users.permissions import ClientPermission
@@ -179,6 +179,15 @@ class PostDeleteView(GenericAPIView):
 
         post_service.delete_post(post)
         return SuccessResponse({"detail": "Post deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["post-amenity"], summary="List amenities")
+class AmenityListView(GenericAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        amenities = post_service.list_amenities()
+        return SuccessResponse(AmenitySerializer(amenities, many=True).data)
 
 
 @extend_schema(tags=["post-category"], summary="List categories")

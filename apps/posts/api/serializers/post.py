@@ -2,9 +2,22 @@ import json
 
 from rest_framework import serializers
 
-from apps.posts.models import Category, Post, PostImage, PostWorkDays
+from apps.posts.models import Amenity, Category, Post, PostImage, PostWorkDays
 from apps.users.api.serializers.profile import UserProfileSerializer
 from apps.shared.serializers import PostRegionSerializer, PostDistrictSerializer
+
+
+class AmenitySerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Amenity
+        fields = ("id", "title", "is_positive")
+
+    def get_title(self, obj):
+        # Returns the title in the active language (set from the Accept-Language
+        # header by LocaleMiddleware), falling back to any available translation.
+        return obj.safe_translation_getter("title", any_language=True)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -46,6 +59,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     images = serializers.SerializerMethodField()
     work_days = PostWorkDaysSerializer(many=True, read_only=True)
+    amenities = AmenitySerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
@@ -67,6 +81,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "total_feedbacks",
             "distance_km",
             "work_days",
+            "amenities",
             "created_at",
             "updated_at",
         )
@@ -108,6 +123,7 @@ class PostListSerializer(PostBaseSerializer):
             "total_feedbacks",
             "distance_km",
             "work_days",
+            "amenities",
             "created_at",
             "updated_at",
             "related_posts",
@@ -125,6 +141,13 @@ class PostListSerializer(PostBaseSerializer):
 
 class PostWriteSerializer(serializers.ModelSerializer):
     work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
+    amenity_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Amenity.objects.all(),
+        many=True,
+        required=False,
+        write_only=True,
+        source="amenities",
+    )
 
     class Meta:
         model = Post
@@ -138,6 +161,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "district",
             "category",
             "work_hours",
+            "amenity_ids",
         )
 
     def validate_work_hours(self, value):

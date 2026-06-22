@@ -2,7 +2,7 @@ import math
 
 from django.db.models import Avg, QuerySet
 
-from apps.posts.models import Category, Feedback, Post, PostImage, PostWorkDays
+from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays
 
 
 class PostService:
@@ -58,7 +58,7 @@ class PostService:
         queryset = (
             Post.objects.filter(state="ACCEPTED")
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days")
+            .prefetch_related("work_days", "amenities__translations")
             .filter(id=post_id)
         )
         if not include_hidden:
@@ -68,7 +68,7 @@ class PostService:
     def list_my_posts(self, user, include_hidden: bool = False):
         queryset = (
             Post.objects.select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days")
+            .prefetch_related("work_days", "amenities__translations")
             .filter(owner=user)
             .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
             .order_by("-created_at")
@@ -78,7 +78,7 @@ class PostService:
         return queryset
 
     def list_posts(self, filters: dict):
-        queryset = Post.objects.select_related("owner", "region", "district", "category").prefetch_related("work_days").filter(
+        queryset = Post.objects.select_related("owner", "region", "district", "category").prefetch_related("work_days", "amenities__translations").filter(
             is_hidden=False
         ).annotate(
             avg_rating_value=Avg("post_feedbacks__rating")
@@ -136,9 +136,12 @@ class PostService:
 
     def create_post(self, owner, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)
+        amenities = validated_data.pop("amenities", [])
         post = Post.objects.create(owner=owner, **validated_data)
         if work_hours:
             self._create_work_days(post, work_hours)
+        if amenities:
+            post.amenities.set(amenities)
         return post
 
     def _create_work_days(self, post: Post, work_hours: list) -> None:
@@ -163,12 +166,15 @@ class PostService:
 
     def update_post(self, post: Post, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)
+        amenities = validated_data.pop("amenities", None)
         for attr, value in validated_data.items():
             setattr(post, attr, value)
         post.save()
         if work_hours is not None:
             post.work_days.all().delete()
             self._create_work_days(post, work_hours)
+        if amenities is not None:
+            post.amenities.set(amenities)
         return post
 
     def delete_post(self, post: Post) -> None:
@@ -193,3 +199,9 @@ class PostService:
 
     def list_categories(self) -> QuerySet[Category]:
         return Category.objects.all().order_by("title")
+
+    def list_amenities(self, is_positive: bool | None = None) -> QuerySet[Amenity]:
+        queryset = Amenity.objects.prefetch_related("translations").order_by("id")
+        if is_positive is not None:
+            queryset = queryset.filter(is_positive=is_positive)
+        return queryset

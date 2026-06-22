@@ -110,21 +110,18 @@ class GoogleMobileAuth(GenericAPIView):
         if not id_token_str:
             logger.warning("GoogleMobileAuth | no id_token in request")
             return ErrorResponse(ResultCodes.NO_CODE_PROVIDED)
-        decoded = jwt.decode(id_token_str, options={"verify_signature": False})
-        print(decoded)
         logger.info("GoogleMobileAuth | verifying id_token with google-auth library")
         try:
             user_info = id_token.verify_oauth2_token(
                 id_token_str,
                 google_requests.Request(),
-                GOOGLE_CLIENT_ID,
+                None,
             )
+            if user_info.get("aud") not in settings.GOOGLE_ALLOWED_AUDIENCES:
+                logger.error(f"GoogleMobileAuth | invalid audience | aud={user_info.get('aud')}")
+                return ErrorResponse(ResultCodes.FAILED_TO_OBTAIN_TOKEN)
         except ValueError as e:
-            error_msg = str(e)
-            if "Token expired" in error_msg:
-                logger.error(f"GoogleMobileAuth | token expired | {e}")
-            else:
-                logger.error(f"GoogleMobileAuth | token verification failed | {e}")
+            logger.error(f"GoogleMobileAuth | token verification failed | {e}")
             return ErrorResponse(ResultCodes.FAILED_TO_OBTAIN_TOKEN)
 
         email = user_info.get("email")

@@ -2,7 +2,7 @@ import math
 
 from django.db.models import Avg, QuerySet
 
-from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays
+from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays, PostCertificate
 
 
 class PostService:
@@ -163,6 +163,11 @@ class PostService:
         if not image_files:
             return
         PostImage.objects.bulk_create([PostImage(post=post, image=image_file) for image_file in image_files])
+
+    def create_post_certificates(self, post: Post, certificate_files) -> None:
+        if not certificate_files:
+            return
+        PostCertificate.objects.bulk_create([PostCertificate(post=post, image=cert_file) for cert_file in certificate_files])
 
     def update_post(self, post: Post, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)

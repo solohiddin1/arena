@@ -1,6 +1,9 @@
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 from django.conf import settings
+from apps.shared.utils import get_logger
+
+logger = get_logger()
 
 def send_email_from_server_from_brevo(to_email, content):
     configuration = sib_api_v3_sdk.Configuration()
@@ -21,7 +24,7 @@ def send_email_from_server_from_brevo(to_email, content):
         response = api_instance.send_transac_email(email)
         return response
     except ApiException as e:
-        print("Error sending email:", e)
+        logger.error(f"Error sending email: {str(e)}")
         return None
 
 # send_email("sirojiddinovsolohiddin961@gmail.com","Welcome","<h3>Thanks for joining!</h3>")

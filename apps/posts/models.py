@@ -52,6 +52,23 @@ class Post(BaseModel):
     comment_count = models.PositiveIntegerField(default=0)
     is_hidden = models.BooleanField(default=False, db_index=True)
     prices = models.JSONField(default=list, blank=True, null=True)
+    description = models.TextField(blank=True, null=True, verbose_name="Post description")
+
+    phone_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Phone number")
+    social_media_link = models.URLField(blank=True, null=True, verbose_name="Social media link")
+    social_media_type = models.CharField(
+        max_length=20,
+        choices=(
+            ('TELEGRAM', 'TELEGRAM'),
+            ('INSTAGRAM', 'INSTAGRAM'),
+            ('WHATSAPP', 'WHATSAPP'),
+            ('FACEBOOK', 'FACEBOOK'),
+            ('OTHER', 'OTHER'),
+        ),
+        blank=True,
+        null=True,
+        verbose_name="Social media type"
+    )
 
     state = models.CharField(max_length=50, choices=post_states, default='CHECKING', verbose_name="Post state")
     region = models.ForeignKey("shared.Region", on_delete=models.SET_NULL, related_name='region_posts', blank=True, null=True)
@@ -78,6 +95,15 @@ class PostImage(BaseModel):
 
     def __str__(self):
         return f"Image for {self.post.title}"
+
+
+class PostCertificate(BaseModel):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_certificates')
+    image = models.ImageField(upload_to='post_certificates/')
+    image_compressed = models.ImageField(upload_to='post_certificates_compressed/', blank=True, null=True)
+
+    def __str__(self):
+        return f"Certificate for {self.post.title}"
 
 
 class Category(BaseModel):

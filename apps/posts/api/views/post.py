@@ -91,7 +91,20 @@ class MyPostListView(GenericAPIView):
             "type": "object",
             "properties": {
                 "title": {"type": "string", "description": "Post title"},
+                "description": {"type": "string", "description": "Post description"},
                 "location_title": {"type": "string", "description": "Location title"},
+                "phone_number": {"type": "string", "description": "Phone number"},
+                "social_media_link": {"type": "string", "description": "Social media link"},
+                "social_media_type": {
+                    "type": "string",
+                    "enum": ["TELEGRAM", "INSTAGRAM", "WHATSAPP", "FACEBOOK", "OTHER"],
+                    "description": "Social media type"
+                },
+                "amenity_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "List of amenity IDs"
+                },
                 "prices": {
                     "type": "string",
                     "example": '[{"name":"Entrance","value":10000},{"name":"Vip","value":50000}]',
@@ -111,6 +124,11 @@ class MyPostListView(GenericAPIView):
                     "type": "array",
                     "items": {"type": "string", "format": "binary"},
                     "description": "Post images. You can upload multiple files.",
+                },
+                "certificates": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "binary"},
+                    "description": "Post certificates. You can upload multiple files.",
                 },
                 "work_hours": {
                     "type": "string",
@@ -136,6 +154,7 @@ class PostCreateView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         post = post_service.create_post(request.user, serializer.validated_data)
         post_service.create_post_images(post, request.FILES.getlist("images"))
+        post_service.create_post_certificates(post, request.FILES.getlist("certificates"))
         return SuccessResponse(PostBaseSerializer(post, context={"request": request}).data)
 
 
@@ -150,7 +169,50 @@ class PostDetailView(GenericAPIView):
         return SuccessResponse(PostListSerializer(post, context={"request": request}).data)
 
 
-@extend_schema(tags=["post"], summary="Update post")
+@extend_schema(
+    tags=["post"],
+    summary="Update post",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "Post title"},
+                "description": {"type": "string", "description": "Post description"},
+                "location_title": {"type": "string", "description": "Location title"},
+                "phone_number": {"type": "string", "description": "Phone number"},
+                "social_media_link": {"type": "string", "description": "Social media link"},
+                "social_media_type": {
+                    "type": "string",
+                    "enum": ["TELEGRAM", "INSTAGRAM", "WHATSAPP", "FACEBOOK", "OTHER"],
+                    "description": "Social media type"
+                },
+                "amenity_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "List of amenity IDs"
+                },
+                "prices": {
+                    "type": "string",
+                    "example": '[{"name":"Entrance","value":10000},{"name":"Vip","value":50000}]',
+                    "description": "JSON string. List of prices with name and value.",
+                },
+                "lat": {"type": "number", "format": "float", "description": "Latitude"},
+                "long": {"type": "number", "format": "float", "description": "Longitude"},
+                "region": {"type": "integer", "description": "Region id"},
+                "district": {"type": "integer", "description": "District id"},
+                "category": {"type": "integer", "description": "Category id"},
+                "work_hours": {
+                    "type": "string",
+                    "example": '[{"days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],'
+                               '"start_time":"08:00","end_time":"20:00"},{"days":["SATURDAY"],'
+                               '"start_time":"10:00","end_time":"16:00"},{"days":["SUNDAY"],'
+                               '"is_closed":true}]',
+                    "description": "JSON string. Groups of days sharing the same hours.",
+                },
+            },
+        }
+    },
+)
 class PostUpdateView(GenericAPIView):
     permission_classes = [ClientPermission]
     serializer_class = PostWriteSerializer

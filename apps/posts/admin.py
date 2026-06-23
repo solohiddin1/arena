@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from gunicorn.config import Workers
 from parler.admin import TranslatableAdmin
 
-from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity
+from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate
 
 def make_accepted(modeladmin, request, queryset):
     queryset.update(state='ACCEPTED')
@@ -25,13 +25,38 @@ class WorkHoursInline(admin.TabularInline):
     model = PostWorkDays
     extra = 0
 
+class PostCertificateInline(admin.TabularInline):
+    model = PostCertificate
+    extra = 0
+    readonly_fields = ('image_preview',)
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="70" height="70" style="object-fit:cover;border-radius:6px;" />', obj.image.url)
+        return "-"
+    image_preview.short_description = 'Preview'
+
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'owner', 'location_title', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
-    search_fields = ('title', 'location_title', 'owner__email')
-    list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category')
+    list_display = ('id', 'title', 'owner', 'phone_number', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
+    search_fields = ('title', 'location_title', 'owner__email', 'phone_number')
+    list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category', 'social_media_type')
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]
-    inlines = [WorkHoursInline]
+    inlines = [WorkHoursInline, PostCertificateInline]
+    fieldsets = (
+        (None, {
+            'fields': ('title', 'description', 'owner', 'state', 'is_hidden')
+        }),
+        ('Location', {
+            'fields': ('location_title', 'lat', 'long', 'region', 'district')
+        }),
+        ('Contact & Social', {
+            'fields': ('phone_number', 'social_media_link', 'social_media_type')
+        }),
+        ('Details', {
+            'fields': ('category', 'amenities', 'prices', 'comment_count')
+        }),
+    )
 
 
 @admin.register(Feedback)
@@ -60,8 +85,8 @@ class AmenityAdmin(TranslatableAdmin):
     list_filter = ('is_positive',)
 
 
-@admin.register(PostImage)
-class PostImageAdmin(admin.ModelAdmin):
+@admin.register(PostCertificate)
+class PostCertificateAdmin(admin.ModelAdmin):
     list_display = ('post', 'image_preview')
     search_fields = ('post__title',)
     readonly_fields = ('image_preview',)

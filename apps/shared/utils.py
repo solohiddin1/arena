@@ -18,7 +18,12 @@ def SuccessResponse(result=None, status=status.HTTP_200_OK):
         "success": True,
         "result": result
     }, status=status)
-def ErrorResponse(result: ResultCodes, message=None):
+def ErrorResponse(result: Any, message=None):
+    if not isinstance(result, ResultCodes):
+        logger = get_logger()
+        logger.error(f"ErrorResponse called with non-ResultCodes type: {type(result)}. Value: {result}")
+        result = ResultCodes.INTERNAL_SERVER_ERROR
+
     if message:
         return Response({
             "success": False,

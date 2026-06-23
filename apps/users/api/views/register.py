@@ -3,7 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 
-from apps.shared.enum import ResultMessages
+from apps.shared.enum import ResultCodes
 from apps.shared.middleware.middleware import get_logger
 from apps.shared.utils import ErrorResponse, SuccessResponse
 from apps.users.api.serializers import RegisterSerializer
@@ -35,4 +35,4 @@ class RegisterUser(GenericAPIView):
             return SuccessResponse(result["data"])
         except Exception as e:
             logger.error(f"Error in registration: {str(e)}")
-            return ErrorResponse(ResultMessages)
+            return ErrorResponse(ResultCodes.INTERNAL_SERVER_ERROR)

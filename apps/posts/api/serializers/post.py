@@ -2,7 +2,7 @@ import json
 
 from rest_framework import serializers
 
-from apps.posts.models import Amenity, Category, Post, PostImage, PostWorkDays
+from apps.posts.models import Amenity, Category, Post, PostImage, PostWorkDays, PostCertificate
 from apps.users.api.serializers.profile import UserProfileSerializer
 from apps.shared.serializers import PostRegionSerializer, PostDistrictSerializer
 
@@ -49,6 +49,12 @@ class PostImagesSerializer(serializers.ModelSerializer):
         fields = ("post", "image", "image_compressed")
 
 
+class PostCertificateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostCertificate
+        fields = ("id", "image", "image_compressed")
+
+
 class PostBaseSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     total_feedbacks = serializers.IntegerField(read_only=True)
@@ -58,6 +64,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
     district = PostDistrictSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     images = serializers.SerializerMethodField()
+    certificates = serializers.SerializerMethodField()
     work_days = PostWorkDaysSerializer(many=True, read_only=True)
     amenities = AmenitySerializer(many=True, read_only=True)
 
@@ -67,7 +74,11 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "location_title",
+            "phone_number",
+            "social_media_link",
+            "social_media_type",
             "images",
+            "certificates",
             "prices",
             "lat",
             "long",
@@ -77,6 +88,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "region",
             "district",
             "category",
+            "description",
             "average_rating",
             "total_feedbacks",
             "distance_km",
@@ -99,6 +111,10 @@ class PostBaseSerializer(serializers.ModelSerializer):
         images = obj.post_images.all()
         return PostImagesSerializer(images, many=True, context=self.context).data
 
+    def get_certificates(self, obj):
+        certificates = obj.post_certificates.all()
+        return PostCertificateSerializer(certificates, many=True, context=self.context).data
+
 
 class PostListSerializer(PostBaseSerializer):
     related_posts = serializers.SerializerMethodField()
@@ -109,7 +125,11 @@ class PostListSerializer(PostBaseSerializer):
             "id",
             "title",
             "location_title",
+            "phone_number",
+            "social_media_link",
+            "social_media_type",
             "images",
+            "certificates",
             "prices",
             "lat",
             "long",
@@ -119,6 +139,7 @@ class PostListSerializer(PostBaseSerializer):
             "region",
             "district",
             "category",
+            "description",
             "average_rating",
             "total_feedbacks",
             "distance_km",
@@ -154,7 +175,11 @@ class PostWriteSerializer(serializers.ModelSerializer):
         model = Post
         fields = (
             "title",
+            "description",
             "location_title",
+            "phone_number",
+            "social_media_link",
+            "social_media_type",
             "prices",
             "lat",
             "long",

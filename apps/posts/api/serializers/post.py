@@ -46,7 +46,7 @@ class WorkHoursGroupSerializer(serializers.Serializer):
 class PostImagesSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostImage
-        fields = ("post", "image", "image_compressed")
+        fields = ("id", "post", "image", "image_compressed")
 
 
 class PostCertificateSerializer(serializers.ModelSerializer):
@@ -108,11 +108,11 @@ class PostBaseSerializer(serializers.ModelSerializer):
         return obj.average_rating
 
     def get_images(self, obj):
-        images = obj.post_images.all()
+        images = obj.post_images.filter(is_hidden=False)
         return PostImagesSerializer(images, many=True, context=self.context).data
 
     def get_certificates(self, obj):
-        certificates = obj.post_certificates.all()
+        certificates = obj.post_certificates.filter(is_hidden=False)
         return PostCertificateSerializer(certificates, many=True, context=self.context).data
 
 
@@ -170,6 +170,16 @@ class PostWriteSerializer(serializers.ModelSerializer):
         write_only=True,
         source="amenities",
     )
+
+    def to_internal_value(self, data):
+        # multipart/form-data sends amenity_ids as a single comma-separated string
+        # e.g. "2,3" — split it into a proper list so PrimaryKeyRelatedField can validate each pk
+        if hasattr(data, 'getlist'):
+            raw = data.getlist('amenity_ids')
+            if len(raw) == 1 and isinstance(raw[0], str) and ',' in raw[0]:
+                data = data.copy()
+                data.setlist('amenity_ids', [i.strip() for i in raw[0].split(',') if i.strip()])
+        return super().to_internal_value(data)
 
     class Meta:
         model = Post

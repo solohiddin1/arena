@@ -92,6 +92,7 @@ class PostImage(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_images')
     image = models.ImageField(upload_to='post_images/')
     image_compressed = models.ImageField(upload_to='post_images_compressed/', blank=True, null=True)
+    is_hidden = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Image for {self.post.title}"
@@ -101,6 +102,7 @@ class PostCertificate(BaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_certificates')
     image = models.ImageField(upload_to='post_certificates/')
     image_compressed = models.ImageField(upload_to='post_certificates_compressed/', blank=True, null=True)
+    is_hidden = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Certificate for {self.post.title}"

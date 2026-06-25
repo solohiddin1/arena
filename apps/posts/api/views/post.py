@@ -173,7 +173,7 @@ class PostDetailView(GenericAPIView):
     tags=["post"],
     summary="Update post",
     request={
-        "application/json": {
+        "multipart/form-data": {
             "type": "object",
             "properties": {
                 "title": {"type": "string", "description": "Post title"},
@@ -201,6 +201,26 @@ class PostDetailView(GenericAPIView):
                 "region": {"type": "integer", "description": "Region id"},
                 "district": {"type": "integer", "description": "District id"},
                 "category": {"type": "integer", "description": "Category id"},
+                "images": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "binary"},
+                    "description": "New post images to add. You can upload multiple files.",
+                },
+                "certificates": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "binary"},
+                    "description": "New post certificates to add. You can upload multiple files.",
+                },
+                "remove_image_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "IDs of existing images to remove (soft delete). Must belong to this post.",
+                },
+                "remove_certificate_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "IDs of existing certificates to remove (soft delete). Must belong to this post.",
+                },
                 "work_hours": {
                     "type": "string",
                     "example": '[{"days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],'
@@ -216,6 +236,7 @@ class PostDetailView(GenericAPIView):
 class PostUpdateView(GenericAPIView):
     permission_classes = [ClientPermission]
     serializer_class = PostWriteSerializer
+    parser_classes = [MultiPartParser, FormParser]
 
     def patch(self, request, post_id, *args, **kwargs):
         post = post_service.get_post(post_id)
@@ -225,9 +246,22 @@ class PostUpdateView(GenericAPIView):
         if post.owner_id != request.user.id:
             return SuccessResponse({"detail": "You can update only your own post."})
 
+        remove_image_ids = [int(i) for i in request.data.getlist("remove_image_ids") if str(i).isdigit()]
+        remove_cert_ids = [int(i) for i in request.data.getlist("remove_certificate_ids") if str(i).isdigit()]
+
+        invalid_images = post_service.remove_post_images(post, remove_image_ids)
+        if invalid_images:
+            return Response({"remove_image_ids": f"Images {invalid_images} do not belong to this post."}, status=status.HTTP_400_BAD_REQUEST)
+
+        invalid_certs = post_service.remove_post_certificates(post, remove_cert_ids)
+        if invalid_certs:
+            return Response({"remove_certificate_ids": f"Certificates {invalid_certs} do not belong to this post."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(post, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         post = post_service.update_post(post, serializer.validated_data)
+        post_service.create_post_images(post, request.FILES.getlist("images"))
+        post_service.create_post_certificates(post, request.FILES.getlist("certificates"))
         return SuccessResponse(PostListSerializer(post, context={"request": request}).data)
 
 

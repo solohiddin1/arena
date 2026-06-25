@@ -78,7 +78,7 @@ class PostService:
         return queryset
 
     def list_posts(self, filters: dict):
-        queryset = Post.objects.select_related("owner", "region", "district", "category").prefetch_related("work_days", "amenities__translations").filter(
+        queryset = Post.objects.filter(state='ACCEPTED').select_related("owner", "region", "district", "category").prefetch_related("work_days", "amenities__translations").filter(
             is_hidden=False
         ).annotate(
             avg_rating_value=Avg("post_feedbacks__rating")
@@ -168,6 +168,28 @@ class PostService:
         if not certificate_files:
             return
         PostCertificate.objects.bulk_create([PostCertificate(post=post, image=cert_file) for cert_file in certificate_files])
+
+    def remove_post_images(self, post: Post, image_ids: list) -> list:
+        """Soft-delete images. Returns list of invalid IDs (not owned by this post)."""
+        if not image_ids:
+            return []
+        owned = set(PostImage.objects.filter(post=post, id__in=image_ids).values_list("id", flat=True))
+        invalid = [i for i in image_ids if i not in owned]
+        if invalid:
+            return invalid
+        PostImage.objects.filter(id__in=image_ids).update(is_hidden=True)
+        return []
+
+    def remove_post_certificates(self, post: Post, cert_ids: list) -> list:
+        """Soft-delete certificates. Returns list of invalid IDs (not owned by this post)."""
+        if not cert_ids:
+            return []
+        owned = set(PostCertificate.objects.filter(post=post, id__in=cert_ids).values_list("id", flat=True))
+        invalid = [i for i in cert_ids if i not in owned]
+        if invalid:
+            return invalid
+        PostCertificate.objects.filter(id__in=cert_ids).update(is_hidden=True)
+        return []
 
     def update_post(self, post: Post, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)

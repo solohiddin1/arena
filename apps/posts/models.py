@@ -46,7 +46,7 @@ class Post(BaseModel):
     )
     title = models.CharField(max_length=100, verbose_name="Post title", null=True)
     location_title = models.CharField(max_length=255, verbose_name="Location title", blank=True, null=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_posts')
+    owner = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='user_posts', blank=True, null=True)
     lat = models.FloatField(blank=True, null=True, verbose_name="Latitude")
     long = models.FloatField(blank=True, null=True, verbose_name="Longitude")
     comment_count = models.PositiveIntegerField(default=0)

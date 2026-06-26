@@ -1,7 +1,7 @@
 import math
 
 from django.db.models import Avg, QuerySet
-
+from apps.users.models import User
 from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays, PostCertificate
 
 
@@ -65,9 +65,9 @@ class PostService:
             queryset = queryset.filter(is_hidden=False)
         return queryset.first()
 
-    def get_my_post(self, post_id: int, include_hidden: bool = False) -> Post | None:
+    def get_my_post(self, post_id: int, user: User, include_hidden: bool = False) -> Post | None:
         queryset = (
-            Post.objects.filter()
+            Post.objects.filter(owner=user)
             .select_related("owner", "region", "district", "category")
             .prefetch_related("work_days", "amenities__translations")
             .filter(id=post_id)

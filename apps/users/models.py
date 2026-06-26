@@ -20,7 +20,7 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
         regex=r'^998\d{9}$',
         message="Telefon raqam '998XXXXXXXXX' formatida bo'lishi kerak!"
     )
-
+    username = models.CharField(blank=True, max_length=255, verbose_name=_('username'), null=True)
     full_name = models.CharField(max_length=255,null=True, blank=True, verbose_name=_('full_name'))
     email = models.EmailField(unique=True, default=None)
     phone_number = models.CharField(max_length=12, blank=True, null=True, validators=[phone_regex], verbose_name=_('phone_number'))

@@ -239,7 +239,7 @@ class PostUpdateView(GenericAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def patch(self, request, post_id, *args, **kwargs):
-        post = post_service.get_post(post_id)
+        post = post_service.get_my_post(post_id, request.user)
         if post is None:
             return SuccessResponse({"detail": "Post not found."})
 
@@ -270,7 +270,7 @@ class PostDeleteView(GenericAPIView):
     permission_classes = [ClientPermission]
 
     def delete(self, request, post_id, *args, **kwargs):
-        post = post_service.get_my_post(post_id)
+        post = post_service.get_my_post(post_id, request.user)
         if post is None:
             return SuccessResponse({"detail": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -278,7 +278,7 @@ class PostDeleteView(GenericAPIView):
             return SuccessResponse({"detail": "You can delete only your own post."}, status=status.HTTP_403_FORBIDDEN)
 
         post_service.delete_post(post)
-        return SuccessResponse({"detail": "Post deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        return SuccessResponse({"detail": "Post deleted successfully."}, status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=["post-amenity"], summary="List amenities")

@@ -65,6 +65,17 @@ class PostService:
             queryset = queryset.filter(is_hidden=False)
         return queryset.first()
 
+    def get_my_post(self, post_id: int, include_hidden: bool = False) -> Post | None:
+        queryset = (
+            Post.objects.filter()
+            .select_related("owner", "region", "district", "category")
+            .prefetch_related("work_days", "amenities__translations")
+            .filter(id=post_id)
+        )
+        if not include_hidden:
+            queryset = queryset.filter(is_hidden=False)
+        return queryset.first()
+
     def list_my_posts(self, user, include_hidden: bool = False):
         queryset = (
             Post.objects.select_related("owner", "region", "district", "category")

@@ -270,7 +270,7 @@ class PostDeleteView(GenericAPIView):
     permission_classes = [ClientPermission]
 
     def delete(self, request, post_id, *args, **kwargs):
-        post = post_service.get_post(post_id)
+        post = post_service.get_my_post(post_id)
         if post is None:
             return SuccessResponse({"detail": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
 

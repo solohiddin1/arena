@@ -4,6 +4,53 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from parler.models import TranslatableModel, TranslatedFields
 
+
+class AdminNotification(BaseModel):
+    TYPES = (
+        ('APP_FEEDBACK', 'App Feedback'),
+    )
+    type = models.CharField(max_length=50, choices=TYPES, default='APP_FEEDBACK')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Admin Notification"
+        verbose_name_plural = "Admin Notifications"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{'READ' if self.is_read else 'NEW'}] {self.type} - {self.created_at}"
+
+
+class AppFeedback(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='app_feedbacks', blank=True, null=True)
+    message = models.TextField()
+    rating = models.PositiveSmallIntegerField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "App Feedback"
+        verbose_name_plural = "App Feedbacks"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email if self.user else 'Anonymous'} - {self.rating or 'No rating'}"
+
+
+class Favourite(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_favourites')
+    post = models.ForeignKey("Post", on_delete=models.CASCADE, related_name='post_favourites')
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'post'], name='unique_favourite_user_post')
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} - {self.post.title}"
+
+
 class Feedback(BaseModel):
     name = models.CharField(max_length=100, blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_feedbacks')

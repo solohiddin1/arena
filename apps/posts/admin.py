@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from gunicorn.config import Workers
 from parler.admin import TranslatableAdmin
 
-from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate
+from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate, AppFeedback, Favourite, AdminNotification
 
 def make_accepted(modeladmin, request, queryset):
     queryset.update(state='ACCEPTED')
@@ -97,3 +97,43 @@ class PostCertificateAdmin(admin.ModelAdmin):
         return "-"
 
     image_preview.short_description = 'Preview'
+
+
+@admin.register(AppFeedback)
+class AppFeedbackAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'rating', 'short_message', 'created_at')
+    search_fields = ('user__email', 'message')
+    list_filter = ('rating',)
+    readonly_fields = ('user', 'message', 'rating', 'created_at')
+
+    def short_message(self, obj):
+        return obj.message[:80] + '...' if len(obj.message) > 80 else obj.message
+    short_message.short_description = 'Message'
+
+
+@admin.register(Favourite)
+class FavouriteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'post', 'created_at')
+    search_fields = ('user__email', 'post__title')
+    list_filter = ('created_at',)
+
+
+def mark_as_read(modeladmin, request, queryset):
+    queryset.update(is_read=True)
+mark_as_read.short_description = "Mark selected as read"
+
+
+@admin.register(AdminNotification)
+class AdminNotificationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'type', 'short_message', 'is_read', 'created_at')
+    list_filter = ('type', 'is_read')
+    search_fields = ('message',)
+    actions = [mark_as_read]
+    readonly_fields = ('type', 'message', 'object_id', 'created_at')
+
+    def short_message(self, obj):
+        return obj.message[:100] + '...' if len(obj.message) > 100 else obj.message
+    short_message.short_description = 'Message'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).order_by('-created_at')

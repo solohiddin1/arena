@@ -2,7 +2,10 @@ from django.urls import path
 
 from apps.posts.api.views import (
     AmenityListView,
+    AppFeedbackCreateView,
     CategoryListView,
+    FavouriteCreateView,
+    FavouriteListView,
     MyPostListView,
     PostCreateView,
     PostDeleteView,
@@ -24,4 +27,7 @@ urlpatterns = [
     path("feedback/upsert/", PostFeedbackUpsertView.as_view(), name="post_feedback_upsert"),
     path("categories/", CategoryListView.as_view(), name="post_category_list"),
     path("amenities/", AmenityListView.as_view(), name="post_amenity_list"),
+    path("favourite/", FavouriteListView.as_view(), name="favourite_list"),
+    path("favourite/add/", FavouriteCreateView.as_view(), name="favourite_add"),
+    path("app-feedback/", AppFeedbackCreateView.as_view(), name="app_feedback_create"),
 ]

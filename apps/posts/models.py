@@ -52,7 +52,6 @@ class Favourite(BaseModel):
 
 
 class Feedback(BaseModel):
-    name = models.CharField(max_length=100, blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_feedbacks')
     post = models.ForeignKey("Post", on_delete=models.CASCADE, related_name='post_feedbacks')
     rating = models.PositiveSmallIntegerField(blank=True, null=True)

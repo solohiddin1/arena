@@ -1,8 +1,6 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 
 from apps.posts.api.serializers import FeedbackReadSerializer, FeedbackWriteSerializer
 from apps.posts.services import PostService
@@ -14,6 +12,7 @@ post_service = PostService()
 
 @extend_schema(tags=["post-feedback"], summary="List post feedbacks")
 class PostFeedbackListView(GenericAPIView):
+    serializer_class = FeedbackReadSerializer
     permission_classes = [AllowAny]
 
     def get(self, request, post_id, *args, **kwargs):
@@ -22,7 +21,7 @@ class PostFeedbackListView(GenericAPIView):
             return SuccessResponse({"detail": "Post not found."})
 
         feedbacks = post_service.list_feedbacks(post)
-        serializer = FeedbackReadSerializer(feedbacks, many=True, context={"request": request})
+        serializer = self.get_serializer(feedbacks, many=True, context={"request": request})
         return SuccessResponse(serializer.data)
 
 

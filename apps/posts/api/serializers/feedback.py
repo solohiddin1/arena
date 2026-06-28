@@ -6,15 +6,16 @@ from apps.posts.models import Feedback
 class FeedbackReadSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     user_email = serializers.CharField(source="user.email", read_only=True)
+    user_full_name = serializers.CharField(source="user.full_name", read_only=True)
 
     class Meta:
         model = Feedback
         fields = (
             "id",
-            "name",
             "post",
             "user_id",
             "user_email",
+            "user_full_name",
             "rating",
             "comment",
             "created_at",
@@ -24,7 +25,6 @@ class FeedbackReadSerializer(serializers.ModelSerializer):
 
 class FeedbackWriteSerializer(serializers.Serializer):
     post_id = serializers.IntegerField(required=True)
-    name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     rating = serializers.IntegerField(required=False, allow_null=True)
     comment = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 

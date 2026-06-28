@@ -10,7 +10,8 @@ from .post import (
     PostUpdateView,
 )
 from .favourite import FavouriteListView, FavouriteCreateView, FavouriteDeleteView
-from .app_feedback import AppFeedbackCreateView
+from .app_feedback import AppFeedbackCreateView, AppFeedbackListView
+from .comment import CommentListView, CommentCreateView
 
 __all__ = [
     "AmenityListView",
@@ -27,4 +28,7 @@ __all__ = [
     "FavouriteCreateView",
     "FavouriteDeleteView",
     "AppFeedbackCreateView",
+    "AppFeedbackListView",
+    "CommentListView",
+    "CommentCreateView",
 ]

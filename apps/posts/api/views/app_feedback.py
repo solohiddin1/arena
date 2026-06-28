@@ -1,9 +1,21 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import IsAdminUser
 
-from apps.posts.api.serializers.app_feedback import AppFeedbackWriteSerializer
+from apps.posts.api.serializers.app_feedback import AppFeedbackReadSerializer, AppFeedbackWriteSerializer
+from apps.posts.models import AppFeedback
 from apps.shared.utils import SuccessResponse
 from apps.users.permissions import ClientPermission
+
+
+@extend_schema(tags=["app-feedback"], summary="List app feedbacks")
+class AppFeedbackListView(GenericAPIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        feedbacks = AppFeedback.objects.select_related("user").order_by("-created_at")
+        serializer = AppFeedbackReadSerializer(feedbacks, many=True)
+        return SuccessResponse(serializer.data)
 
 
 @extend_schema(tags=["app-feedback"], summary="Submit app feedback")

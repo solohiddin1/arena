@@ -227,7 +227,6 @@ class PostService:
         defaults = {
             "rating": validated_data.get("rating"),
             "comment": validated_data.get("comment"),
-            "name": validated_data.get("name"),
         }
         feedback, _ = Feedback.objects.update_or_create(
             user=user,

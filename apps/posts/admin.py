@@ -61,8 +61,8 @@ class PostAdmin(admin.ModelAdmin):
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'post', 'rating', 'comment')
-    search_fields = ('name', 'comment', 'user__email', 'post__title')
+    list_display = ('user', 'post', 'rating', 'comment')
+    search_fields = ('comment', 'user__email', 'post__title')
     list_filter = ('user', 'post')
 
 @admin.register(Category)

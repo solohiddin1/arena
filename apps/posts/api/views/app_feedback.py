@@ -10,11 +10,12 @@ from apps.users.permissions import ClientPermission
 
 @extend_schema(tags=["app-feedback"], summary="List app feedbacks")
 class AppFeedbackListView(GenericAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [ClientPermission]
+    serializer_class = AppFeedbackReadSerializer
 
     def get(self, request, *args, **kwargs):
-        feedbacks = AppFeedback.objects.select_related("user").order_by("-created_at")
-        serializer = AppFeedbackReadSerializer(feedbacks, many=True)
+        feedbacks = AppFeedback.objects.filter(user=request.user)
+        serializer = self.get_serializer(feedbacks, many=True)
         return SuccessResponse(serializer.data)
 
 

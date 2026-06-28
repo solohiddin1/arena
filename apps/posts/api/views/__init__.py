@@ -9,7 +9,7 @@ from .post import (
     PostListView,
     PostUpdateView,
 )
-from .favourite import FavouriteListView, FavouriteCreateView
+from .favourite import FavouriteListView, FavouriteCreateView, FavouriteDeleteView
 from .app_feedback import AppFeedbackCreateView
 
 __all__ = [
@@ -25,5 +25,6 @@ __all__ = [
     "PostUpdateView",
     "FavouriteListView",
     "FavouriteCreateView",
+    "FavouriteDeleteView",
     "AppFeedbackCreateView",
 ]

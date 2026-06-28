@@ -59,6 +59,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     total_feedbacks = serializers.IntegerField(read_only=True)
     distance_km = serializers.SerializerMethodField()
+    is_favourite = serializers.SerializerMethodField()
     owner = UserProfileSerializer(read_only=True)
     region = PostRegionSerializer(read_only=True)
     district = PostDistrictSerializer(read_only=True)
@@ -92,11 +93,18 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "average_rating",
             "total_feedbacks",
             "distance_km",
+            "is_favourite",
             "work_days",
             "amenities",
             "created_at",
             "updated_at",
         )
+
+    def get_is_favourite(self, obj):
+        favourite_post_ids = self.context.get("favourite_post_ids")
+        if favourite_post_ids is None:
+            return None
+        return obj.id in favourite_post_ids
 
     def get_distance_km(self, obj):
         return getattr(obj, "distance_km", None)
@@ -117,48 +125,43 @@ class PostBaseSerializer(serializers.ModelSerializer):
 
 
 class PostListSerializer(PostBaseSerializer):
-    related_posts = serializers.SerializerMethodField()
-
     class Meta:
         model = Post
         fields = (
             "id",
             "title",
             "location_title",
-            "phone_number",
-            "social_media_link",
-            "social_media_type",
             "images",
-            "certificates",
             "prices",
             "lat",
             "long",
-            "state",
             "comment_count",
             "owner",
             "region",
             "district",
             "category",
-            "description",
             "average_rating",
             "total_feedbacks",
             "distance_km",
+            "is_favourite",
             "work_days",
-            "amenities",
-            "created_at",
-            "updated_at",
-            "related_posts",
         )
+
+
+class PostDetailSerializer(PostListSerializer):
+    related_posts = serializers.SerializerMethodField()
+
+    class Meta(PostListSerializer.Meta):
+        fields = PostListSerializer.Meta.fields + ("related_posts",)
 
     def get_related_posts(self, obj):
         related_posts = Post.objects.filter(
             category=obj.category,
             state='ACCEPTED',
-            is_hidden=False
+            is_hidden=False,
         ).exclude(id=obj.id).order_by('-created_at')[:5]
-
         return PostBaseSerializer(related_posts, many=True, context=self.context).data
-        
+
 
 class PostWriteSerializer(serializers.ModelSerializer):
     work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
@@ -172,13 +175,23 @@ class PostWriteSerializer(serializers.ModelSerializer):
     )
 
     def to_internal_value(self, data):
-        # multipart/form-data sends amenity_ids as a single comma-separated string
-        # e.g. "2,3" — split it into a proper list so PrimaryKeyRelatedField can validate each pk
         if hasattr(data, 'getlist'):
             raw = data.getlist('amenity_ids')
-            if len(raw) == 1 and isinstance(raw[0], str) and ',' in raw[0]:
-                data = data.copy()
-                data.setlist('amenity_ids', [i.strip() for i in raw[0].split(',') if i.strip()])
+            if len(raw) == 1 and isinstance(raw[0], str):
+                value = raw[0].strip()
+                if not value:
+                    data = data.copy()
+                    data.setlist('amenity_ids', [])
+                elif value.startswith('['):
+                    try:
+                        parsed = json.loads(value)
+                        data = data.copy()
+                        data.setlist('amenity_ids', [str(i) for i in parsed])
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+                elif ',' in value:
+                    data = data.copy()
+                    data.setlist('amenity_ids', [i.strip() for i in value.split(',') if i.strip()])
         return super().to_internal_value(data)
 
     class Meta:

@@ -151,6 +151,7 @@ class PostService:
         post = Post.objects.create(owner=owner, **validated_data)
         if work_hours:
             self._create_work_days(post, work_hours)
+        print(amenities, 'amenitites')
         if amenities:
             post.amenities.set(amenities)
         return post

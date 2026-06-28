@@ -5,6 +5,7 @@ from apps.posts.api.views import (
     AppFeedbackCreateView,
     CategoryListView,
     FavouriteCreateView,
+    FavouriteDeleteView,
     FavouriteListView,
     MyPostListView,
     PostCreateView,
@@ -29,5 +30,6 @@ urlpatterns = [
     path("amenities/", AmenityListView.as_view(), name="post_amenity_list"),
     path("favourite/", FavouriteListView.as_view(), name="favourite_list"),
     path("favourite/add/", FavouriteCreateView.as_view(), name="favourite_add"),
+    path("favourite/remove/<int:post_id>/", FavouriteDeleteView.as_view(), name="favourite_remove"),
     path("app-feedback/", AppFeedbackCreateView.as_view(), name="app_feedback_create"),
 ]

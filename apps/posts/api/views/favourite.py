@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.generics import GenericAPIView
 
 from apps.posts.api.serializers.favourite import FavouriteReadSerializer, FavouriteWriteSerializer
@@ -42,3 +43,14 @@ class FavouriteCreateView(GenericAPIView):
             "is_favourite": True,
             "created": created,
         })
+
+
+@extend_schema(tags=["favourite"], summary="Remove post from favourites")
+class FavouriteDeleteView(GenericAPIView):
+    permission_classes = [ClientPermission]
+
+    def delete(self, request, post_id, *args, **kwargs):
+        deleted, _ = Favourite.objects.filter(user=request.user, post_id=post_id).delete()
+        if not deleted:
+            return SuccessResponse({"detail": "Post not found in favourites."}, status=status.HTTP_404_NOT_FOUND)
+        return SuccessResponse({"post_id": post_id, "is_favourite": False})

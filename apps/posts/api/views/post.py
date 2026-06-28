@@ -6,8 +6,10 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.posts.api.serializers.post import AmenitySerializer, PostBaseSerializer, CategorySerializer, PostListSerializer, PostWriteSerializer
+from apps.posts.api.serializers.post import AmenitySerializer, PostBaseSerializer, CategorySerializer, PostDetailSerializer, PostListSerializer, PostWriteSerializer
+from apps.posts.models import Favourite
 from apps.posts.services import PostService
+from apps.shared.pagination import CustomPageNumberPagination
 from apps.shared.utils import SuccessResponse
 from apps.users.permissions import ClientPermission
 
@@ -61,11 +63,21 @@ POST_LIST_PARAMETERS = [
 )
 class PostListView(GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = PostListSerializer
+    pagination_class = CustomPageNumberPagination
 
     def get(self, request, *args, **kwargs):
         queryset = post_service.list_posts(request.query_params)
-        serializer = PostListSerializer(queryset, many=True, context={"request": request})
-        return SuccessResponse(serializer.data)
+        context = {"request": request}
+        if request.user.is_authenticated:
+            context["favourite_post_ids"] = set(
+                Favourite.objects.filter(user=request.user).values_list("post_id", flat=True)
+            )
+        page = self.paginate_queryset(queryset)
+        print(page)
+        serializer = self.get_serializer(page, many=True, context=context)
+        paginated = self.get_paginated_response(serializer.data)
+        return SuccessResponse(paginated)
 
 
 @extend_schema(
@@ -78,7 +90,13 @@ class MyPostListView(GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = post_service.list_my_posts(request.user)
-        serializer = PostBaseSerializer(queryset, many=True, context={"request": request})
+        context = {
+            "request": request,
+            "favourite_post_ids": set(
+                Favourite.objects.filter(user=request.user).values_list("post_id", flat=True)
+            ),
+        }
+        serializer = PostBaseSerializer(queryset, many=True, context=context)
         return SuccessResponse(serializer.data)
 
 
@@ -160,13 +178,19 @@ class PostCreateView(GenericAPIView):
 
 @extend_schema(tags=["post"], summary="Get post detail")
 class PostDetailView(GenericAPIView):
+    serializer_class = PostDetailSerializer
     permission_classes = [AllowAny]
 
     def get(self, request, post_id, *args, **kwargs):
         post = post_service.get_post(post_id)
         if post is None:
             return SuccessResponse({"detail": "Post not found."})
-        return SuccessResponse(PostListSerializer(post, context={"request": request}).data)
+        context = {"request": request}
+        if request.user.is_authenticated:
+            context["favourite_post_ids"] = set(
+                Favourite.objects.filter(user=request.user).values_list("post_id", flat=True)
+            )
+        return SuccessResponse(self.get_serializer(post, context=context).data)
 
 
 @extend_schema(

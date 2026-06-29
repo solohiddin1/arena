@@ -152,7 +152,18 @@ class PostDetailSerializer(PostListSerializer):
     related_posts = serializers.SerializerMethodField()
 
     class Meta(PostListSerializer.Meta):
-        fields = PostListSerializer.Meta.fields + ("related_posts",)
+        fields = PostListSerializer.Meta.fields + (
+            "related_posts",
+            "description",
+            "phone_number",
+            "social_media_link",
+            "social_media_type",
+            "certificates",
+            "state",
+            "amenities",
+            "created_at",
+            "updated_at",
+        )
 
     def get_related_posts(self, obj):
         related_posts = Post.objects.filter(
@@ -251,4 +262,3 @@ class PostWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"long": "Longitude must be between -180 and 180."})
 
         return attrs
-

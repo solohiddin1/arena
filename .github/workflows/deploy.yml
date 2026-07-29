@@ -20,7 +20,7 @@ jobs:
           eval "$(ssh-agent -s)"
           echo "$SSH_PRIVATE_KEY" | ssh-add -
 
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}'
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
             set -e
             cd /var/www/arena/
             git pull origin main

@@ -119,20 +119,36 @@ class PostService:
             queryset = queryset.filter(category_id=category_id)
         if category_ids:
             queryset = queryset.filter(category_id__in=category_ids)
-        if min_cost:
-            queryset = queryset.filter(prices__contains=[{"value": int(min_cost)}])
-        if max_cost:
-            queryset = queryset.filter(prices__contains=[{"value": int(max_cost)}])
         if search:
             queryset = queryset.filter(title__icontains=search)
 
         queryset = queryset.order_by("-created_at")
 
+        min_cost_val = int(min_cost) if min_cost is not None and min_cost != "" else None
+        max_cost_val = int(max_cost) if max_cost is not None and max_cost != "" else None
+
+        def matches_cost(post):
+            if min_cost_val is None and max_cost_val is None:
+                return True
+            prices = post.prices or []
+            values = [p.get("value") for p in prices if isinstance(p, dict) and p.get("value") is not None]
+            if not values:
+                return True
+            if min_cost_val is not None and max_cost_val is not None:
+                return any(min_cost_val <= v <= max_cost_val for v in values)
+            if min_cost_val is not None:
+                return any(v >= min_cost_val for v in values)
+            return any(v <= max_cost_val for v in values)
+
         if user_lat is None or user_long is None:
+            if min_cost_val is not None or max_cost_val is not None:
+                return [p for p in queryset if matches_cost(p)]
             return queryset
 
         posts_with_distance = []
         for post in queryset.exclude(lat__isnull=True, long__isnull=True):
+            if not matches_cost(post):
+                continue
             post.distance_km = round(self._distance_km(user_lat, user_long, post.lat, post.long), 2)
             posts_with_distance.append(post)
 

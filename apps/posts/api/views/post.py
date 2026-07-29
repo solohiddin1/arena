@@ -18,25 +18,11 @@ post_service = PostService()
 
 POST_LIST_PARAMETERS = [
     OpenApiParameter(
-        name="lat",
-        type=OpenApiTypes.FLOAT,
+        name="search",
+        type=OpenApiTypes.STR,
         location=OpenApiParameter.QUERY,
         required=False,
-        description="User latitude for distance filtering.",
-    ),
-    OpenApiParameter(
-        name="long",
-        type=OpenApiTypes.FLOAT,
-        location=OpenApiParameter.QUERY,
-        required=False,
-        description="User longitude for distance filtering.",
-    ),
-    OpenApiParameter(
-        name="radius_km",
-        type=OpenApiTypes.FLOAT,
-        location=OpenApiParameter.QUERY,
-        required=False,
-        description="Distance radius in kilometers. Default is 10 km.",
+        description="Search posts by title.",
     ),
     OpenApiParameter(
         name="category_ids",
@@ -46,11 +32,46 @@ POST_LIST_PARAMETERS = [
         description="Comma-separated category ids, e.g. '1,2,3'.",
     ),
     OpenApiParameter(
-        name="rating",
+        name="region",
+        type=OpenApiTypes.INT,
+        location=OpenApiParameter.QUERY,
+        required=False,
+        description="Filter by region id.",
+    ),
+    OpenApiParameter(
+        name="district",
+        type=OpenApiTypes.INT,
+        location=OpenApiParameter.QUERY,
+        required=False,
+        description="Filter by district id.",
+    ),
+    OpenApiParameter(
+        name="min_cost",
+        type=OpenApiTypes.INT,
+        location=OpenApiParameter.QUERY,
+        required=False,
+        description="Minimum price value.",
+    ),
+    OpenApiParameter(
+        name="max_cost",
+        type=OpenApiTypes.INT,
+        location=OpenApiParameter.QUERY,
+        required=False,
+        description="Maximum price value.",
+    ),
+    OpenApiParameter(
+        name="lat",
         type=OpenApiTypes.FLOAT,
         location=OpenApiParameter.QUERY,
         required=False,
-        description="Minimum average rating filter.",
+        description="User latitude for distance sorting.",
+    ),
+    OpenApiParameter(
+        name="long",
+        type=OpenApiTypes.FLOAT,
+        location=OpenApiParameter.QUERY,
+        required=False,
+        description="User longitude for distance sorting.",
     ),
 ]
 
@@ -74,7 +95,6 @@ class PostListView(GenericAPIView):
                 Favourite.objects.filter(user=request.user).values_list("post_id", flat=True)
             )
         page = self.paginate_queryset(queryset)
-        print(page)
         serializer = self.get_serializer(page, many=True, context=context)
         paginated = self.get_paginated_response(serializer.data)
         return SuccessResponse(paginated)

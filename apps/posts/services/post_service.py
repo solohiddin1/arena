@@ -6,7 +6,6 @@ from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, Post
 
 
 class PostService:
-    DEFAULT_RADIUS_KM = 10.0
 
     @staticmethod
     def _to_float(value):
@@ -89,10 +88,11 @@ class PostService:
         return queryset
 
     def list_posts(self, filters: dict):
-        queryset = Post.objects.filter(state='ACCEPTED').select_related("owner", "region", "district", "category").prefetch_related("work_days", "amenities__translations").filter(
-            is_hidden=False
-        ).annotate(
-            avg_rating_value=Avg("post_feedbacks__rating")
+        queryset = (
+            Post.objects.filter(state="ACCEPTED", is_hidden=False)
+            .select_related("owner", "region", "district", "category")
+            .prefetch_related("work_days", "amenities__translations")
+            .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
         )
 
         owner_id = filters.get("owner")
@@ -101,13 +101,11 @@ class PostService:
         district_id = filters.get("district")
         category_id = filters.get("category")
         category_ids = self._to_int_list(filters.get("category_ids"))
-        min_rating = self._to_float(filters.get("rating"))
         min_cost = filters.get("min_cost")
         max_cost = filters.get("max_cost")
         search = filters.get("search")
         user_lat = self._to_float(filters.get("lat"))
         user_long = self._to_float(filters.get("long"))
-        radius_km = self._to_float(filters.get("radius_km")) or self.DEFAULT_RADIUS_KM
 
         if owner_id:
             queryset = queryset.filter(owner_id=owner_id)
@@ -121,12 +119,10 @@ class PostService:
             queryset = queryset.filter(category_id=category_id)
         if category_ids:
             queryset = queryset.filter(category_id__in=category_ids)
-        if min_rating is not None:
-            queryset = queryset.filter(avg_rating_value__gte=min_rating)
         if min_cost:
-            queryset = queryset.filter(prices__contains=[{'value': min_cost}]) # Note: This might not work perfectly with JSONField for GT/LT
+            queryset = queryset.filter(prices__contains=[{"value": int(min_cost)}])
         if max_cost:
-            queryset = queryset.filter(prices__contains=[{'value': max_cost}])
+            queryset = queryset.filter(prices__contains=[{"value": int(max_cost)}])
         if search:
             queryset = queryset.filter(title__icontains=search)
 
@@ -135,15 +131,13 @@ class PostService:
         if user_lat is None or user_long is None:
             return queryset
 
-        nearby_posts = []
+        posts_with_distance = []
         for post in queryset.exclude(lat__isnull=True, long__isnull=True):
-            distance_km = self._distance_km(user_lat, user_long, post.lat, post.long)
-            if distance_km <= radius_km:
-                post.distance_km = round(distance_km, 2)
-                nearby_posts.append(post)
+            post.distance_km = round(self._distance_km(user_lat, user_long, post.lat, post.long), 2)
+            posts_with_distance.append(post)
 
-        nearby_posts.sort(key=lambda item: item.distance_km)
-        return nearby_posts
+        posts_with_distance.sort(key=lambda p: p.distance_km)
+        return posts_with_distance
 
     def create_post(self, owner, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)

@@ -150,11 +150,6 @@ class MyPostListView(GenericAPIView):
                 },
                 "lat": {"type": "number", "format": "float", "description": "Latitude"},
                 "long": {"type": "number", "format": "float", "description": "Longitude"},
-                # "state": {
-                #     "type": "string",
-                #     "description": "Post state",
-                #     "enum": ["CHECKING", "ACCEPTED", "CANCELLED", "FROZEN"],
-                # },
                 "region": {"type": "integer", "description": "Region id"},
                 "district": {"type": "integer", "description": "District id"},
                 "category": {"type": "integer", "description": "Category id"},

@@ -12,10 +12,12 @@ urlpatterns = [
     path('api/v1/user/', include('apps.users.urls')),
     path('api/v1/post/', include('apps.posts.urls')),
     path('api/v1/shared/', include('apps.shared.urls')),
-    path("api/v1/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="schema-swagger-ui"),
-    path('api/v1/schema/', SpectacularAPIView.as_view(), name='schema'),
 ]
 
 if settings.DEBUG:
+    urlpatterns += [
+        path("api/v1/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="schema-swagger-ui"),
+        path('api/v1/schema/', SpectacularAPIView.as_view(), name='schema'),
+    ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

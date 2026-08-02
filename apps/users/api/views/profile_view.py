@@ -11,7 +11,8 @@ from apps.users.permissions import ClientPermission
     summary="Get authenticated user profile",
 )
 class UserProfileView(GenericAPIView):
+    serializer_class = UserProfileSerializer
     permission_classes = [ClientPermission]
 
     def get(self, request, *args, **kwargs):
-        return SuccessResponse(UserProfileSerializer(request.user, context={"request": request}).data)
+        return SuccessResponse(self.get_serializer(request.user, context={"request": request}).data)

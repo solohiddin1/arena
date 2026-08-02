@@ -53,7 +53,7 @@ class PostService:
 
         return 6371.0 * c
 
-    def get_post(self, post_id: int, include_hidden: bool = False) -> Post | None:
+    def get_post(self, post_id: int, include_hidden: bool = False, user_lat: float = None, user_long: float = None) -> Post | None:
         queryset = (
             Post.objects.filter(state="ACCEPTED")
             .select_related("owner", "region", "district", "category")
@@ -62,7 +62,10 @@ class PostService:
         )
         if not include_hidden:
             queryset = queryset.filter(is_hidden=False)
-        return queryset.first()
+        post = queryset.first()
+        if post and user_lat is not None and user_long is not None and post.lat is not None and post.long is not None:
+            post.distance_km = round(self._distance_km(user_lat, user_long, post.lat, post.long), 2)
+        return post
 
     def get_my_post(self, post_id: int, user: User, include_hidden: bool = False) -> Post | None:
         queryset = (

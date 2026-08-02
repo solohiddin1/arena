@@ -191,13 +191,40 @@ class PostCreateView(GenericAPIView):
         return SuccessResponse(PostBaseSerializer(post, context={"request": request}).data)
 
 
-@extend_schema(tags=["post"], summary="Get post detail")
+@extend_schema(
+    tags=["post"],
+    summary="Get post detail",
+    parameters=[
+        OpenApiParameter(
+            name="lat",
+            type=OpenApiTypes.FLOAT,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="User latitude for distance calculation.",
+        ),
+        OpenApiParameter(
+            name="long",
+            type=OpenApiTypes.FLOAT,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="User longitude for distance calculation.",
+        ),
+    ],
+)
 class PostDetailView(GenericAPIView):
     serializer_class = PostDetailSerializer
     permission_classes = [AllowAny]
 
     def get(self, request, post_id, *args, **kwargs):
-        post = post_service.get_post(post_id)
+        def _parse_float(val):
+            try:
+                return float(val) if val not in (None, "") else None
+            except (TypeError, ValueError):
+                return None
+
+        user_lat = _parse_float(request.query_params.get("lat"))
+        user_long = _parse_float(request.query_params.get("long"))
+        post = post_service.get_post(post_id, user_lat=user_lat, user_long=user_long)
         if post is None:
             return SuccessResponse({"detail": "Post not found."})
         context = {"request": request}

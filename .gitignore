@@ -2,7 +2,6 @@
 __pycache__/
 *.pyc
 venv/
-migrations/
 .vscode
 logs/
 *.log
@@ -13,3 +12,5 @@ media/
 test_telegram_otp.py
 coderabbit.yaml
 .idea
+**/migrations/*.py
+!**/migrations/__init__.py

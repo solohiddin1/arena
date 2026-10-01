@@ -23,7 +23,7 @@ jobs:
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
             set -e
             cd /var/www/backend
-            git pull origin test
+            git pull origin main
             export UV_PROJECT_ENVIRONMENT=/var/www/backend/.venv
             export UV_PYTHON_DOWNLOADS=never
             "$HOME/.local/bin/uv" sync --locked --no-dev

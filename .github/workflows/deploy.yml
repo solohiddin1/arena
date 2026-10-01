@@ -27,6 +27,7 @@ jobs:
             export UV_PROJECT_ENVIRONMENT=/var/www/backend/.venv
             export UV_PYTHON_DOWNLOADS=never
             "$HOME/.local/bin/uv" sync --locked --no-dev
+            .venv/bin/python manage.py makemigrations
             .venv/bin/python manage.py migrate --noinput
             .venv/bin/python manage.py collectstatic --noinput
             sudo supervisorctl restart backend

@@ -48,7 +48,6 @@ APPS = [
 
 LIBS = [
     'parler',
-    'drf_yasg',
     'rest_framework',
     'django_filters',
     'drf_spectacular',

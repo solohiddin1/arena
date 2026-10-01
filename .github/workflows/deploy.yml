@@ -22,7 +22,7 @@ jobs:
 
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
             set -e
-            cd /var/www/arena/
+            cd /var/www/backend/
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt

@@ -11,3 +11,6 @@ dependencies = []
 
 [project.scripts]
 arena = "arena:main"
+
+[tool.uv]
+package = false

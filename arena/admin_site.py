@@ -6,11 +6,12 @@ class CustomAdminSite(admin.AdminSite):
         app_dict = self._build_app_dict(request, app_label)
 
         app_ordering = {
-            "user": 1,
-            "shared": 2,
-            "notification": 3,
-            "auth": 4,
-            "token_blacklist": 5,
+            "users": 1,
+            "posts": 2,
+            "shared": 3,
+            "notification": 4,
+            "auth": 5,
+            "token_blacklist": 6,
         }
 
         app_list = sorted(

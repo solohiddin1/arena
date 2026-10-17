@@ -21,4 +21,4 @@ class CustomAdminSite(admin.AdminSite):
         return app_list
 
 class MyAdminConfig(AdminConfig):
-    default_site = 'root.admin_site.CustomAdminSite'
+    default_site = 'arena.admin_site.CustomAdminSite'

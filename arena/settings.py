@@ -32,7 +32,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 BASE_APPS = [
     'jazzmin',
-    'django.contrib.admin',
+    "root.admin_site.MyAdminConfig",
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',

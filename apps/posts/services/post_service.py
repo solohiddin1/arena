@@ -158,13 +158,38 @@ class PostService:
         posts_with_distance.sort(key=lambda p: p.distance_km)
         return posts_with_distance
 
+    def _handle_custom_amenities(self, custom_names: list) -> list:
+        if not custom_names:
+            return []
+        result = []
+        for raw_name in custom_names:
+            name = str(raw_name).strip()
+            if not name:
+                continue
+            amenity = Amenity.objects.filter(translations__title__iexact=name).first()
+            if not amenity:
+                amenity = Amenity.objects.create(
+                    is_positive=True,
+                    is_main=False,
+                )
+                amenity.set_current_language("uz")
+                amenity.title = name
+                amenity.save()
+                for lang in ["ru", "en"]:
+                    amenity.create_translation(lang, title=name)
+            result.append(amenity)
+        return result
+
     def create_post(self, owner, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)
-        amenities = validated_data.pop("amenities", [])
+        amenities = list(validated_data.pop("amenities", []) or [])
+        custom_amenities = validated_data.pop("custom_amenities", [])
         post = Post.objects.create(owner=owner, **validated_data)
         if work_hours:
             self._create_work_days(post, work_hours)
-        print(amenities, 'amenitites')
+        if custom_amenities:
+            extra = self._handle_custom_amenities(custom_amenities)
+            amenities.extend(extra)
         if amenities:
             post.amenities.set(amenities)
         return post
@@ -219,12 +244,19 @@ class PostService:
     def update_post(self, post: Post, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)
         amenities = validated_data.pop("amenities", None)
+        custom_amenities = validated_data.pop("custom_amenities", None)
         for attr, value in validated_data.items():
             setattr(post, attr, value)
         post.save()
         if work_hours is not None:
             post.work_days.all().delete()
             self._create_work_days(post, work_hours)
+        if custom_amenities:
+            extra = self._handle_custom_amenities(custom_amenities)
+            if amenities is not None:
+                amenities = list(amenities) + extra
+            else:
+                post.amenities.add(*extra)
         if amenities is not None:
             post.amenities.set(amenities)
         return post
@@ -251,8 +283,14 @@ class PostService:
     def list_categories(self) -> QuerySet[Category]:
         return Category.objects.all().order_by("title")
 
-    def list_amenities(self, is_positive: bool | None = None) -> QuerySet[Amenity]:
+    def list_amenities(
+        self,
+        is_positive: bool | None = None,
+        is_main: bool | None = True,
+    ) -> QuerySet[Amenity]:
         queryset = Amenity.objects.prefetch_related("translations").order_by("id")
         if is_positive is not None:
             queryset = queryset.filter(is_positive=is_positive)
+        if is_main is not None:
+            queryset = queryset.filter(is_main=is_main)
         return queryset

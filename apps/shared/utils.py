@@ -52,6 +52,10 @@ def ErrorResponse(result: Any, message=None):
     }, status=status.HTTP_200_OK)
 
 
+success_response = SuccessResponse
+error_response = ErrorResponse
+
+
 def parse_json_items_to_dict_list(raw: Any) -> List[Dict[str, Any]]:
     items: List[Dict[str, Any]] = []
     if isinstance(raw, str):

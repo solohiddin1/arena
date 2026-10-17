@@ -44,6 +44,7 @@ APPS = [
     'apps.users',
     'apps.posts',
     'apps.shared',
+    'apps.notification',
 ]
 
 LIBS = [
@@ -223,7 +224,6 @@ SIMPLE_JWT = {
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
 
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
@@ -262,6 +262,17 @@ BREVO_EMAIL_API_EMAIL = os.getenv('BREVO_EMAIL_API_EMAIL', '')
 
 TELEGRAM_GATEWAY_URL = os.getenv('TELEGRAM_GATEWAY_URL')
 TELEGRAM_GATEWAY_TOKEN = os.getenv('TELEGRAM_GATEWAY_TOKEN')
+
+TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', 'JoyQidirBot')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', TELEGRAM_TOKEN)
+TELEGRAM_LOGIN_TOKEN_TTL_MINUTES = int(os.getenv('TELEGRAM_LOGIN_TOKEN_TTL_MINUTES', '5'))
+TELEGRAM_LOGIN_RETURN_URL = os.getenv('TELEGRAM_LOGIN_RETURN_URL', '')
+TELEGRAM_ADMIN_BOT_TOKEN = os.getenv('TELEGRAM_ADMIN_BOT_TOKEN', '')
+TELEGRAM_ADMIN_CHAT_ID = os.getenv('TELEGRAM_ADMIN_CHAT_ID', CHAT_ID)
+
+FIREBASE_CREDENTIALS_FILE = os.getenv(
+    'FIREBASE_CREDENTIALS_FILE', str(BASE_DIR / 'firebase' / 'joyqidir_firebase.json')
+)
 
 FORCE_SCRIPT_NAME = os.environ.get("SCRIPT_NAME") or None
 STATIC_URL = os.environ.get("SCRIPT_NAME", "") + "/static/"

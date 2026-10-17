@@ -6,7 +6,15 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.posts.api.serializers.post import AmenitySerializer, PostBaseSerializer, CategorySerializer, PostDetailSerializer, PostListSerializer, PostWriteSerializer
+from apps.posts.api.serializers.post import (
+    AmenityCreateSerializer,
+    AmenitySerializer,
+    CategorySerializer,
+    PostBaseSerializer,
+    PostDetailSerializer,
+    PostListSerializer,
+    PostWriteSerializer,
+)
 from apps.posts.models import Favourite
 from apps.posts.services import PostService
 from apps.shared.pagination import CustomPageNumberPagination
@@ -347,13 +355,74 @@ class PostDeleteView(GenericAPIView):
         return SuccessResponse({"detail": "Post deleted successfully."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=["post-amenity"], summary="List amenities")
+@extend_schema(
+    tags=["post-amenity"],
+    summary="List amenities",
+    parameters=[
+        OpenApiParameter(
+            name="is_main",
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Filter by main flag. Defaults to True (only main amenities are returned).",
+        ),
+        OpenApiParameter(
+            name="is_positive",
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Filter by is_positive flag.",
+        ),
+    ],
+    responses={200: AmenitySerializer(many=True)},
+)
 class AmenityListView(GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = AmenitySerializer
 
     def get(self, request, *args, **kwargs):
-        amenities = post_service.list_amenities()
+        is_main_param = request.query_params.get("is_main")
+        if is_main_param is not None:
+            if is_main_param.lower() in ("all", "none"):
+                is_main = None
+            else:
+                is_main = is_main_param.lower() in ("1", "true", "yes")
+        else:
+            # Default to main amenities only so user can select from main list
+            is_main = True
+
+        is_pos_param = request.query_params.get("is_positive")
+        is_positive = is_pos_param.lower() in ("1", "true", "yes") if is_pos_param is not None else None
+
+        amenities = post_service.list_amenities(
+            is_positive=is_positive,
+            is_main=is_main,
+        )
         return SuccessResponse(AmenitySerializer(amenities, many=True).data)
+
+    def post(self, request, *args, **kwargs):
+        # Allow creating amenity directly via POST /amenities/
+        serializer = AmenityCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        amenity = serializer.save()
+        return SuccessResponse(AmenitySerializer(amenity).data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(
+    tags=["post-amenity"],
+    summary="Create custom amenity",
+    request=AmenityCreateSerializer,
+    responses={201: AmenitySerializer},
+)
+class AmenityCreateView(GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = AmenityCreateSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        amenity = serializer.save()
+        return SuccessResponse(AmenitySerializer(amenity).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["post-category"], summary="List categories")

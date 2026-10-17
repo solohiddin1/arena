@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from gunicorn.config import Workers
 from parler.admin import TranslatableAdmin
 
 from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate, AppFeedback, Favourite, AdminNotification
@@ -20,6 +19,17 @@ make_frozen.short_description = "Mark FROZEN"
 def make_checking(modeladmin, request, queryset):
     queryset.update(state='CHECKING')
 make_checking.short_description = "Mark CHECKING"
+
+class PostImageInline(admin.TabularInline):
+    model = PostImage
+    extra = 1
+    readonly_fields = ('image_preview',)
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="70" height="70" style="object-fit:cover;border-radius:6px;" />', obj.image.url)
+        return "-"
+    image_preview.short_description = 'Preview'
 
 class WorkHoursInline(admin.TabularInline):
     model = PostWorkDays
@@ -42,7 +52,8 @@ class PostAdmin(admin.ModelAdmin):
     search_fields = ('title', 'location_title', 'owner__email', 'phone_number')
     list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category', 'social_media_type')
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]
-    inlines = [WorkHoursInline, PostCertificateInline]
+    inlines = [PostImageInline, WorkHoursInline, PostCertificateInline]
+    filter_horizontal = ('amenities',)
     fieldsets = (
         (None, {
             'fields': ('title', 'description', 'owner', 'state', 'is_hidden')
@@ -57,6 +68,13 @@ class PostAdmin(admin.ModelAdmin):
             'fields': ('category', 'amenities', 'prices', 'comment_count')
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        if not obj.owner_id and request.user.is_authenticated:
+            obj.owner = request.user
+        if obj.prices is None:
+            obj.prices = []
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Feedback)
@@ -80,9 +98,23 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Amenity)
 class AmenityAdmin(TranslatableAdmin):
-    # list_display = ('title', 'is_positive')
-    # search_fields = ('translations__title',)
-    list_filter = ('is_positive',)
+    list_display = ('id', 'title', 'is_main', 'is_positive')
+    list_filter = ('is_main', 'is_positive')
+    search_fields = ('translations__title',)
+
+
+@admin.register(PostImage)
+class PostImageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'post', 'image_preview', 'is_hidden')
+    list_filter = ('is_hidden',)
+    search_fields = ('post__title',)
+    readonly_fields = ('image_preview',)
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="70" height="70" style="object-fit:cover;border-radius:6px;" />', obj.image.url)
+        return "-"
+    image_preview.short_description = 'Preview'
 
 
 @admin.register(PostCertificate)

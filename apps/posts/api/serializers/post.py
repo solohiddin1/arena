@@ -9,15 +9,38 @@ from apps.shared.serializers import PostRegionSerializer, PostDistrictSerializer
 
 class AmenitySerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
+    main = serializers.BooleanField(source="is_main", read_only=True)
 
     class Meta:
         model = Amenity
-        fields = ("id", "title", "is_positive")
+        fields = ("id", "title", "is_positive", "is_main", "main")
 
     def get_title(self, obj):
         # Returns the title in the active language (set from the Accept-Language
         # header by LocaleMiddleware), falling back to any available translation.
         return obj.safe_translation_getter("title", any_language=True)
+
+
+class AmenityCreateSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(max_length=100)
+
+    class Meta:
+        model = Amenity
+        fields = ("id", "title", "is_positive")
+
+    def create(self, validated_data):
+        title = validated_data.pop("title")
+        is_positive = validated_data.get("is_positive", True)
+        amenity = Amenity.objects.create(
+            is_positive=is_positive,
+            is_main=False,
+        )
+        amenity.set_current_language("uz")
+        amenity.title = title
+        amenity.save()
+        for lang in ["ru", "en"]:
+            amenity.create_translation(lang, title=title)
+        return amenity
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -177,6 +200,11 @@ class PostDetailSerializer(PostListSerializer):
 class PostWriteSerializer(serializers.ModelSerializer):
     work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
     prices = serializers.CharField(required=False, allow_null=True, write_only=True)
+    custom_amenities = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        required=False,
+        write_only=True,
+    )
     amenity_ids = serializers.PrimaryKeyRelatedField(
         queryset=Amenity.objects.all(),
         many=True,
@@ -186,23 +214,47 @@ class PostWriteSerializer(serializers.ModelSerializer):
     )
 
     def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, "copy") else dict(data)
         if hasattr(data, 'getlist'):
             raw = data.getlist('amenity_ids')
             if len(raw) == 1 and isinstance(raw[0], str):
                 value = raw[0].strip()
                 if not value:
-                    data = data.copy()
                     data.setlist('amenity_ids', [])
                 elif value.startswith('['):
                     try:
                         parsed = json.loads(value)
-                        data = data.copy()
                         data.setlist('amenity_ids', [str(i) for i in parsed])
                     except (json.JSONDecodeError, ValueError):
                         pass
                 elif ',' in value:
-                    data = data.copy()
                     data.setlist('amenity_ids', [i.strip() for i in value.split(',') if i.strip()])
+
+            raw_custom = data.getlist('custom_amenities')
+            if len(raw_custom) == 1 and isinstance(raw_custom[0], str):
+                val = raw_custom[0].strip()
+                if not val:
+                    data.setlist('custom_amenities', [])
+                elif val.startswith('['):
+                    try:
+                        parsed = json.loads(val)
+                        data.setlist('custom_amenities', [str(i) for i in parsed])
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+                elif ',' in val:
+                    data.setlist('custom_amenities', [i.strip() for i in val.split(',') if i.strip()])
+        elif isinstance(data.get("custom_amenities"), str):
+            val = data["custom_amenities"].strip()
+            if val.startswith('['):
+                try:
+                    data["custom_amenities"] = json.loads(val)
+                except Exception:
+                    pass
+            elif ',' in val:
+                data["custom_amenities"] = [i.strip() for i in val.split(',') if i.strip()]
+            elif val:
+                data["custom_amenities"] = [val]
+
         return super().to_internal_value(data)
 
     class Meta:
@@ -222,6 +274,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "category",
             "work_hours",
             "amenity_ids",
+            "custom_amenities",
         )
 
     def validate_work_hours(self, value):

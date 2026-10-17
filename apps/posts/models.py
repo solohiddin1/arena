@@ -73,11 +73,16 @@ class Amenity(TranslatableModel, BaseModel):
     translations = TranslatedFields(
         title=models.CharField(max_length=100, verbose_name=_("title"), blank=True, null=True),
     )
-    is_positive = models.BooleanField(default=True)
+    is_positive = models.BooleanField(default=True, verbose_name=_("is positive"))
+    is_main = models.BooleanField(default=False, db_index=True, verbose_name=_("is main"))
 
     class Meta:
         verbose_name = _("Amenity")
         verbose_name_plural = _("Amenities")
+
+    @property
+    def main(self) -> bool:
+        return self.is_main
 
     def __str__(self):
         return self.safe_translation_getter("title", any_language=True) or f"Amenity #{self.pk}"

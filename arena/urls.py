@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/v1/user/', include('apps.users.urls')),
     path('api/v1/post/', include('apps.posts.urls')),
     path('api/v1/shared/', include('apps.shared.urls')),
+    path('api/v1/notification/', include('apps.notification.urls')),
 ]
 
 if settings.DEBUG:

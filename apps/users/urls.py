@@ -14,6 +14,15 @@ from apps.users.api.views.update_profile_image import UserUpdateProfileImage
 from apps.users.api.views.verify_forgot_password import VerifyForgotPassword
 from apps.users.api.views.verify_otp import VerifyOtp
 
+from apps.users.api.views.device_add import DeviceAddView
+from apps.users.api.views.device_delete import DeviceDeleteView
+from apps.users.api.views.telegram_otp import (
+    TelegramOtpPollView,
+    TelegramOtpVerifyView,
+    TelegramOtpView,
+    TelegramWebhookView,
+)
+
 urlpatterns = [
 
     # register
@@ -23,6 +32,21 @@ urlpatterns = [
 
     # login
     path('auth/login/', LoginUser.as_view(), name='login'),
+
+    # telegram auth
+    path('auth/telegram/request/', TelegramOtpView.as_view(), name='telegram_otp_request'),
+    path('telegram_otp_request/', TelegramOtpView.as_view(), name='telegram_otp_request_legacy'),
+    path('auth/telegram/webhook/', TelegramWebhookView.as_view(), name='telegram_webhook'),
+    path('telegram_webhook/', TelegramWebhookView.as_view(), name='telegram_webhook_legacy'),
+    path('auth/telegram/poll/', TelegramOtpPollView.as_view(), name='telegram_otp_poll'),
+    path('telegram_otp_poll/', TelegramOtpPollView.as_view(), name='telegram_otp_poll_legacy'),
+    path('auth/telegram/verify/', TelegramOtpVerifyView.as_view(), name='telegram_otp_verify'),
+    path('telegram_otp_verify/', TelegramOtpVerifyView.as_view(), name='telegram_otp_verify_legacy'),
+
+    # devices
+    path('devices/add/', DeviceAddView.as_view(), name='device_add'),
+    path('devices/<int:device_id>/delete/', DeviceDeleteView.as_view(), name='device_delete'),
+    path('devices/<str:device_id>/delete/', DeviceDeleteView.as_view(), name='device_delete_str'),
 
     path('get-profile/', UserProfileView.as_view(), name='get_profile'),
     path('profile-image-update/', UserUpdateProfileImage.as_view(), name='profile_image_update'),

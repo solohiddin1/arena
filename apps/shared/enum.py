@@ -21,8 +21,49 @@ class ResultCodes(Enum):
     NO_CODE_PROVIDED = -65
     FAILED_TO_OBTAIN_TOKEN = -66
     INTERNAL_SERVER_ERROR = -10
+    DEVICE_NOT_FOUND = -33
+    NOTIFICATION_NOT_FOUND = -34
+    LINK_EXPIRED = -35
+    INVALID_REQUEST = -36
+    INVALID_OTP = -37
+    TOKEN_REQUIRED = -38
 
 ResultMessages = {
+    "SUCCESS": {
+        "uz": "Muvaffaqiyatli.",
+        "en": "Success.",
+        "ru": "Успешно."
+    },
+    "DEVICE_NOT_FOUND": {
+        "uz": "Qurilma topilmadi.",
+        "en": "Device not found.",
+        "ru": "Устройство не найдено."
+    },
+    "NOTIFICATION_NOT_FOUND": {
+        "uz": "Bildirishnoma topilmadi.",
+        "en": "Notification not found.",
+        "ru": "Уведомление не найдено."
+    },
+    "LINK_EXPIRED": {
+        "uz": "Havola muddati tugagan.",
+        "en": "Link has expired.",
+        "ru": "Срок действия ссылки истек."
+    },
+    "INVALID_REQUEST": {
+        "uz": "Noto'g'ri so'rov.",
+        "en": "Invalid request.",
+        "ru": "Неверный запрос."
+    },
+    "INVALID_OTP": {
+        "uz": "Noto'g'ri OTP kodi.",
+        "en": "Invalid OTP code.",
+        "ru": "Неверный OTP код."
+    },
+    "TOKEN_REQUIRED": {
+        "uz": "Token talab qilinadi.",
+        "en": "Token required.",
+        "ru": "Требуется токен."
+    },
     "USER_IS_NOT_VERIFIED": {
         "uz": "User vefikatsiyadan o'tmaga",
         "ru": "User ne verifitsirovan",

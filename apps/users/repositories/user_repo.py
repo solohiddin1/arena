@@ -22,7 +22,11 @@ class UserRepo:
         user.telegram_id = str(telegram_id)
         if telegram_username:
             user.telegram_username = telegram_username
-        user.save(update_fields=["telegram_id", "telegram_username"])
+        if user.email and user.email.endswith("@telegram.user"):
+            user.email = None
+            user.save(update_fields=["telegram_id", "telegram_username", "email"])
+        else:
+            user.save(update_fields=["telegram_id", "telegram_username"])
         return user
 
     @classmethod
@@ -37,21 +41,21 @@ class UserRepo:
 
         if not user:
             full_name = f"{first_name} {last_name}".strip()
-            # If user has no email, create unique placeholder email
-            email_candidate = f"{username}@telegram.user" if "@" not in username else username
-            if User.objects.filter(email=email_candidate).exists():
-                email_candidate = f"{username}_{User.objects.count()}@telegram.user"
-
+            uname = phone or username
             user = User.objects.create(
-                username=username,
-                email=email_candidate,
-                phone_number=phone or (username if username.startswith("998") else None),
+                username=uname,
+                email=None,
+                phone_number=phone or (uname if uname and uname.startswith("998") else None),
                 full_name=full_name,
                 is_active=True,
                 is_verified=True,
             )
             user.set_unusable_password()
             user.save()
+        else:
+            if user.email and user.email.endswith("@telegram.user"):
+                user.email = None
+                user.save(update_fields=["email"])
         return user
 
     @staticmethod

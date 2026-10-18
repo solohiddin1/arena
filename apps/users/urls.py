@@ -38,7 +38,6 @@ urlpatterns = [
     path('auth/telegram/webhook/', TelegramWebhookView.as_view(), name='telegram_webhook'),
     path('auth/telegram/poll/', TelegramOtpPollView.as_view(), name='telegram_otp_poll'),
     path('auth/telegram/verify/', TelegramOtpVerifyView.as_view(), name='telegram_otp_verify'),
-    path('telegram_otp_verify/', TelegramOtpVerifyView.as_view(), name='telegram_otp_verify_legacy'),
 
     # devices
     path('devices/add/', DeviceAddView.as_view(), name='device_add'),

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import permissions
@@ -8,6 +9,7 @@ from drf_spectacular.views import (SpectacularAPIView, SpectacularSwaggerView)
 
 urlpatterns = [
 
+    path('admin/', RedirectView.as_view(url='/api/v1/admin/', permanent=False)),
     path('api/v1/admin/', admin.site.urls),
     path('api/v1/user/', include('apps.users.urls')),
     path('api/v1/post/', include('apps.posts.urls')),

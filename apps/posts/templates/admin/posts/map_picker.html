@@ -1,0 +1,188 @@
+<div class="form-row field-map_picker" style="padding: 10px 0;">
+    <div style="width: 100%;">
+        <label style="font-weight: bold; margin-bottom: 6px; display: block; font-size: 13px;">
+            🗺️ Xaritadan joyni tanlash (Yandex Maps)
+        </label>
+        
+        <!-- Search bar -->
+        <div style="display: flex; gap: 8px; margin-bottom: 10px; max-width: 800px;">
+            <input type="text" id="yandex-map-search" placeholder="Manzil yoki joy nomini qidiring (masalan: Toshkent City, Chorsu, Samarqand Registon)..."
+                   style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" />
+            <button type="button" id="yandex-map-search-btn"
+                    style="padding: 8px 16px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                🔍 Qidirish
+            </button>
+            <button type="button" id="yandex-map-tashkent-btn"
+                    style="padding: 8px 14px; background: #64748b; color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+                Toshkent markazi
+            </button>
+        </div>
+
+        <!-- Map container -->
+        <div id="yandex-map-container"
+             style="width: 100%; max-width: 900px; height: 420px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 4px rgba(0,0,0,0.06); background: #f8fafc;">
+            <div id="map-loading" style="padding: 20px; text-align: center; color: #64748b;">
+                Xarita yuklanmoqda...
+            </div>
+        </div>
+
+        <!-- Info / status bar -->
+        <div style="max-width: 900px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #475569; background: #f1f5f9; padding: 8px 14px; border-radius: 6px; margin-top: 6px; border: 1px solid #e2e8f0;">
+            <span>💡 <b>Qo'llanma:</b> Xarita ustiga bosing yoki markerni siljiting. <b>lat</b> va <b>long</b> avtomatik to'ldiriladi.</span>
+            <span id="map-coords-display" style="font-weight: 600; color: #0284c7;">Koordinata: tanlanmagan</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+<script type="text/javascript">
+(function() {
+    function initMapPicker() {
+        if (typeof ymaps === 'undefined') {
+            var loader = document.getElementById('map-loading');
+            if (loader) loader.innerHTML = '<span style="color:#dc2626;">Xarita skripti yuklanmadi. Internet aloqasini tekshiring.</span>';
+            return;
+        }
+
+        ymaps.ready(function() {
+            var latInput = document.getElementById('id_lat');
+            var longInput = document.getElementById('id_long');
+            var locTitleInput = document.getElementById('id_location_title');
+            var searchInput = document.getElementById('yandex-map-search');
+            var searchBtn = document.getElementById('yandex-map-search-btn');
+            var tashkentBtn = document.getElementById('yandex-map-tashkent-btn');
+            var coordsDisplay = document.getElementById('map-coords-display');
+            var loader = document.getElementById('map-loading');
+            if (loader) loader.style.display = 'none';
+
+            var TASHKENT = [41.311081, 69.240562];
+            var curLat = latInput && latInput.value ? parseFloat(latInput.value) : NaN;
+            var curLong = longInput && longInput.value ? parseFloat(longInput.value) : NaN;
+            var hasCoords = !isNaN(curLat) && !isNaN(curLong);
+
+            var initialCenter = hasCoords ? [curLat, curLong] : TASHKENT;
+            var initialZoom = hasCoords ? 15 : 12;
+
+            var map = new ymaps.Map('yandex-map-container', {
+                center: initialCenter,
+                zoom: initialZoom,
+                controls: ['zoomControl', 'fullscreenControl', 'typeSelector', 'geolocationControl']
+            });
+
+            var placemark = new ymaps.Placemark(initialCenter, {
+                hintContent: 'Joyni tanlash uchun siljiting',
+                balloonContent: 'Tanlangan joy'
+            }, {
+                draggable: true,
+                preset: 'islands#redDotIconWithCaption'
+            });
+
+            map.geoObjects.add(placemark);
+
+            function setPosition(coords, autoFillTitle) {
+                var lat = Number(coords[0].toFixed(6));
+                var lon = Number(coords[1].toFixed(6));
+                placemark.geometry.setCoordinates([lat, lon]);
+
+                if (latInput) {
+                    latInput.value = lat;
+                    latInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    latInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (longInput) {
+                    longInput.value = lon;
+                    longInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    longInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                if (coordsDisplay) {
+                    coordsDisplay.textContent = 'Koordinata: ' + lat + ', ' + lon;
+                }
+
+                if (autoFillTitle && locTitleInput && !locTitleInput.value.trim()) {
+                    ymaps.geocode(coords).then(function(res) {
+                        var first = res.geoObjects.get(0);
+                        if (first && locTitleInput && !locTitleInput.value.trim()) {
+                            locTitleInput.value = first.getAddressLine();
+                        }
+                    });
+                }
+            }
+
+            if (hasCoords) {
+                if (coordsDisplay) coordsDisplay.textContent = 'Koordinata: ' + curLat + ', ' + curLong;
+            }
+
+            // Click on map to place pin
+            map.events.add('click', function(e) {
+                var coords = e.get('coords');
+                setPosition(coords, true);
+            });
+
+            // Drag pin
+            placemark.events.add('dragend', function() {
+                var coords = placemark.geometry.getCoordinates();
+                setPosition(coords, true);
+            });
+
+            // Search by address
+            function doSearch() {
+                var q = searchInput ? searchInput.value.trim() : '';
+                if (!q) return;
+                ymaps.geocode(q, { results: 1 }).then(function(res) {
+                    var first = res.geoObjects.get(0);
+                    if (first) {
+                        var coords = first.geometry.getCoordinates();
+                        map.setCenter(coords, 16);
+                        setPosition(coords, false);
+                        if (locTitleInput && !locTitleInput.value.trim()) {
+                            locTitleInput.value = first.getAddressLine();
+                        }
+                    } else {
+                        alert('Manzil topilmadi: ' + q);
+                    }
+                }).catch(function(err) {
+                    console.error('Geocode error:', err);
+                });
+            }
+
+            if (searchBtn) searchBtn.addEventListener('click', doSearch);
+            if (searchInput) {
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        doSearch();
+                    }
+                });
+            }
+
+            if (tashkentBtn) {
+                tashkentBtn.addEventListener('click', function() {
+                    map.setCenter(TASHKENT, 12);
+                    setPosition(TASHKENT, false);
+                });
+            }
+
+            // Manual coordinate inputs
+            function onInputsChanged() {
+                var lat = latInput ? parseFloat(latInput.value) : NaN;
+                var lon = longInput ? parseFloat(longInput.value) : NaN;
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    placemark.geometry.setCoordinates([lat, lon]);
+                    map.setCenter([lat, lon], 15);
+                    if (coordsDisplay) coordsDisplay.textContent = 'Koordinata: ' + lat + ', ' + lon;
+                }
+            }
+
+            if (latInput) latInput.addEventListener('change', onInputsChanged);
+            if (longInput) longInput.addEventListener('change', onInputsChanged);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMapPicker);
+    } else {
+        initMapPicker();
+    }
+})();
+</script>

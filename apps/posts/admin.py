@@ -46,6 +46,8 @@ class PostCertificateInline(admin.TabularInline):
         return "-"
     image_preview.short_description = 'Preview'
 
+from django.template.loader import render_to_string
+
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'owner', 'phone_number', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
@@ -54,12 +56,13 @@ class PostAdmin(admin.ModelAdmin):
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]
     inlines = [PostImageInline, WorkHoursInline, PostCertificateInline]
     filter_horizontal = ('amenities',)
+    readonly_fields = ('map_picker',)
     fieldsets = (
         (None, {
             'fields': ('title', 'description', 'owner', 'state', 'is_hidden')
         }),
         ('Location', {
-            'fields': ('location_title', 'lat', 'long', 'region', 'district')
+            'fields': ('location_title', 'map_picker', ('lat', 'long'), 'region', 'district')
         }),
         ('Contact & Social', {
             'fields': ('phone_number', 'social_media_link', 'social_media_type')
@@ -68,6 +71,10 @@ class PostAdmin(admin.ModelAdmin):
             'fields': ('category', 'amenities', 'prices', 'comment_count')
         }),
     )
+
+    def map_picker(self, obj=None):
+        return render_to_string("admin/posts/map_picker.html", {"post": obj})
+    map_picker.short_description = "Xarita (Yandex Maps)"
 
     def save_model(self, request, obj, form, change):
         if not obj.owner_id and request.user.is_authenticated:

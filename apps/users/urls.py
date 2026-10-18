@@ -35,11 +35,8 @@ urlpatterns = [
 
     # telegram auth
     path('auth/telegram/request/', TelegramOtpView.as_view(), name='telegram_otp_request'),
-    path('telegram_otp_request/', TelegramOtpView.as_view(), name='telegram_otp_request_legacy'),
     path('auth/telegram/webhook/', TelegramWebhookView.as_view(), name='telegram_webhook'),
-    path('telegram_webhook/', TelegramWebhookView.as_view(), name='telegram_webhook_legacy'),
     path('auth/telegram/poll/', TelegramOtpPollView.as_view(), name='telegram_otp_poll'),
-    path('telegram_otp_poll/', TelegramOtpPollView.as_view(), name='telegram_otp_poll_legacy'),
     path('auth/telegram/verify/', TelegramOtpVerifyView.as_view(), name='telegram_otp_verify'),
     path('telegram_otp_verify/', TelegramOtpVerifyView.as_view(), name='telegram_otp_verify_legacy'),
 

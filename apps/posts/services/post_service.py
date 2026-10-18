@@ -158,40 +158,98 @@ class PostService:
         posts_with_distance.sort(key=lambda p: p.distance_km)
         return posts_with_distance
 
-    def _handle_custom_amenities(self, custom_names: list) -> list:
-        if not custom_names:
+    def _process_amenities(self, amenities_data: list, post: Post | None = None) -> list[Amenity]:
+        if not amenities_data:
             return []
-        result = []
-        for raw_name in custom_names:
-            name = str(raw_name).strip()
-            if not name:
+
+        result_amenities = []
+        seen_ids = set()
+
+        for item in amenities_data:
+            if isinstance(item, (int, str)):
+                s = str(item).strip()
+                if s.isdigit():
+                    item = {"id": int(s)}
+                else:
+                    item = {"title": s, "is_positive": True}
+
+            if not isinstance(item, dict):
                 continue
-            amenity = Amenity.objects.filter(translations__title__iexact=name).first()
-            if not amenity:
-                amenity = Amenity.objects.create(
-                    is_positive=True,
-                    is_main=False,
-                )
-                amenity.set_current_language("uz")
-                amenity.title = name
-                amenity.save()
-                for lang in ["ru", "en"]:
-                    amenity.create_translation(lang, title=name)
-            result.append(amenity)
-        return result
+
+            amenity_id = item.get("id")
+            title = item.get("title") or item.get("name")
+            is_positive = item.get("is_positive", True)
+
+            if amenity_id:
+                amenity = Amenity.objects.filter(id=amenity_id).first()
+                if not amenity:
+                    continue
+
+                updated = False
+                if "is_positive" in item and amenity.is_positive != bool(is_positive):
+                    amenity.is_positive = bool(is_positive)
+                    updated = True
+
+                if title:
+                    title_str = str(title).strip()
+                    # If user is updating a custom amenity (non-main system amenity)
+                    if not amenity.is_main:
+                        for lang in ["uz", "ru", "en"]:
+                            amenity.set_current_language(lang)
+                            amenity.title = title_str
+                        updated = True
+
+                if updated:
+                    amenity.save()
+
+                if amenity.id not in seen_ids:
+                    seen_ids.add(amenity.id)
+                    result_amenities.append(amenity)
+
+            elif title:
+                title_str = str(title).strip()
+                if not title_str:
+                    continue
+                # Custom amenity created on the fly
+                amenity = Amenity.objects.filter(translations__title__iexact=title_str).first()
+                if not amenity:
+                    amenity = Amenity.objects.create(
+                        is_positive=bool(is_positive),
+                        is_main=False,
+                    )
+                    for lang in ["uz", "ru", "en"]:
+                        amenity.set_current_language(lang)
+                        amenity.title = title_str
+                    amenity.save()
+                else:
+                    if "is_positive" in item and amenity.is_positive != bool(is_positive):
+                        amenity.is_positive = bool(is_positive)
+                        amenity.save()
+
+                if amenity.id not in seen_ids:
+                    seen_ids.add(amenity.id)
+                    result_amenities.append(amenity)
+
+        return result_amenities
 
     def create_post(self, owner, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)
-        amenities = list(validated_data.pop("amenities", []) or [])
-        custom_amenities = validated_data.pop("custom_amenities", [])
+        amenities_data = validated_data.pop("amenities", None) or []
+        amenity_ids = validated_data.pop("amenity_ids", None)
+        custom_amenities = validated_data.pop("custom_amenities", None)
+
         post = Post.objects.create(owner=owner, **validated_data)
         if work_hours:
             self._create_work_days(post, work_hours)
+
+        if amenity_ids:
+            amenities_data.extend([{"id": i} for i in amenity_ids])
         if custom_amenities:
-            extra = self._handle_custom_amenities(custom_amenities)
-            amenities.extend(extra)
-        if amenities:
-            post.amenities.set(amenities)
+            amenities_data.extend([{"title": c, "is_positive": True} for c in custom_amenities])
+
+        if amenities_data:
+            resolved = self._process_amenities(amenities_data, post=post)
+            post.amenities.set(resolved)
         return post
 
     def _create_work_days(self, post: Post, work_hours: list) -> None:
@@ -243,22 +301,35 @@ class PostService:
 
     def update_post(self, post: Post, validated_data: dict) -> Post:
         work_hours = validated_data.pop("work_hours", None)
-        amenities = validated_data.pop("amenities", None)
+        has_amenities = (
+            "amenities" in validated_data
+            or "amenity_ids" in validated_data
+            or "custom_amenities" in validated_data
+        )
+        amenities_data = validated_data.pop("amenities", None)
+        amenity_ids = validated_data.pop("amenity_ids", None)
         custom_amenities = validated_data.pop("custom_amenities", None)
+
         for attr, value in validated_data.items():
             setattr(post, attr, value)
         post.save()
+
         if work_hours is not None:
             post.work_days.all().delete()
             self._create_work_days(post, work_hours)
-        if custom_amenities:
-            extra = self._handle_custom_amenities(custom_amenities)
-            if amenities is not None:
-                amenities = list(amenities) + extra
-            else:
-                post.amenities.add(*extra)
-        if amenities is not None:
-            post.amenities.set(amenities)
+
+        if has_amenities:
+            merged = []
+            if amenities_data is not None:
+                merged.extend(amenities_data)
+            if amenity_ids:
+                merged.extend([{"id": i} for i in amenity_ids])
+            if custom_amenities:
+                merged.extend([{"title": c, "is_positive": True} for c in custom_amenities])
+
+            resolved = self._process_amenities(merged, post=post)
+            post.amenities.set(resolved)
+
         return post
 
     def delete_post(self, post: Post) -> None:

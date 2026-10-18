@@ -6,8 +6,11 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.shared.middleware.middleware import get_logger
+from apps.shared.models import SiteConfig
+from apps.users.models import UserAuthOtp
 from apps.users.repositories.telegram import TelegramRepo
 from apps.users.repositories.user_repo import UserRepo
+from apps.users.services.sms import SmsService
 
 logger = get_logger()
 
@@ -53,15 +56,18 @@ class TelegramClient:
 class TgOtpService:
     @classmethod
     def request(cls):
+        config = SiteConfig.objects.first()
+        otp_mode = config.send_otp_code if config else False
+
         token = secrets.token_urlsafe(32)
         ttl = getattr(settings, "TELEGRAM_LOGIN_TOKEN_TTL_MINUTES", 5)
         expires_at = timezone.now() + timedelta(minutes=ttl)
-        TelegramRepo.create_token(token, False, expires_at)
+        TelegramRepo.create_token(token, otp_mode, expires_at)
         bot_username = getattr(settings, "TELEGRAM_BOT_USERNAME", "")
         return {
             "token": token,
             "deep_link": f"https://t.me/{bot_username}?start={token}",
-            "poll": True,
+            "poll": not otp_mode,
         }
 
     @classmethod
@@ -82,6 +88,24 @@ class TgOtpService:
             return
 
         TelegramRepo.set_telegram_id(row, telegram_id)
+
+        if row.otp_mode:
+            user = UserRepo.get_user_by_telegram_id(telegram_id)
+            if not user:
+                TelegramRepo.set_telegram_id(row, telegram_id)
+                TelegramClient.send_message(
+                    chat_id, ASK_PHONE_MSG, reply_markup=CONTACT_KEYBOARD
+                )
+                return
+            TelegramRepo.set_user(row, user)
+            sent, result = SmsService.create_otp_for_user(user)
+            if sent:
+                TelegramClient.send_message(chat_id, cls._otp_msg(result), reply_markup=REMOVE_KEYBOARD)
+            else:
+                TelegramClient.send_message(
+                    chat_id, OTP_TIME_LIMIT_MSG.format(seconds=result), reply_markup=REMOVE_KEYBOARD
+                )
+            return
 
         user = UserRepo.get_user_by_telegram_id(telegram_id)
         if user:
@@ -134,6 +158,37 @@ class TgOtpService:
             return {"error": "invalid"}
 
         user = row.user
+        config = SiteConfig.objects.first()
+        timeout_seconds = config.otp_timeout_seconds if config and config.otp_timeout_seconds else 300
+        cutoff = timezone.now() - timedelta(seconds=timeout_seconds)
+
+        otp = None
+        try:
+            code_int = int(code)
+            otp = UserAuthOtp.objects.filter(
+                user=user,
+                code=code_int,
+                is_used=False,
+                otp_created_at__gte=cutoff,
+            ).order_by("-otp_created_at").first()
+        except (ValueError, TypeError):
+            pass
+
+        otp_valid = False
+        if otp:
+            otp_valid = True
+        elif user.otp and user.otp == str(code):
+            if user.otp_created_at and user.otp_created_at >= cutoff:
+                otp_valid = True
+
+        if not otp_valid:
+            return {"error": "invalid_otp"}
+
+        if otp:
+            otp.is_used = True
+            otp.verified = True
+            otp.save(update_fields=["is_used", "verified"])
+
         if not user.is_verified or not user.is_active:
             user.is_verified = True
             user.is_active = True
@@ -169,13 +224,23 @@ class TgOtpService:
         phone = cls._normalize_phone(contact.get("phone_number") or "")
         user = cls._link_or_create_user(phone, telegram_id, frm)
 
-        user.is_verified = True
-        user.is_active = True
-        user.save(update_fields=["is_verified", "is_active"])
-        TelegramRepo.confirm(row, user)
-        TelegramClient.send_message(
-            chat_id, cls._success_msg(), reply_markup=REMOVE_KEYBOARD
-        )
+        if row.otp_mode:
+            TelegramRepo.set_user(row, user)
+            sent, result = SmsService.create_otp_for_user(user)
+            if not sent:
+                TelegramClient.send_message(
+                    chat_id, OTP_TIME_LIMIT_MSG.format(seconds=result), reply_markup=REMOVE_KEYBOARD
+                )
+                return
+            TelegramClient.send_message(chat_id, cls._otp_msg(result), reply_markup=REMOVE_KEYBOARD)
+        else:
+            user.is_verified = True
+            user.is_active = True
+            user.save(update_fields=["is_verified", "is_active"])
+            TelegramRepo.confirm(row, user)
+            TelegramClient.send_message(
+                chat_id, cls._success_msg(), reply_markup=REMOVE_KEYBOARD
+            )
 
     @classmethod
     def handle_update(cls, update):
@@ -215,6 +280,10 @@ class TgOtpService:
     def _success_msg():
         url = getattr(settings, "TELEGRAM_LOGIN_RETURN_URL", "")
         return SUCCESS_MSG_WITH_URL.format(url=url) if url else SUCCESS_MSG
+
+    @staticmethod
+    def _otp_msg(otp):
+        return f"Ilovaga kirish uchun OTP kodingiz: {otp}"
 
     @staticmethod
     def _no_token_msg():

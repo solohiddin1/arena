@@ -29,3 +29,31 @@ class District(models.Model):
     class Meta:
         verbose_name = _("District")
         verbose_name_plural = _("Districts")
+
+
+class SiteConfig(models.Model):
+    send_otp_code = models.BooleanField(
+        default=False,
+        verbose_name=_("Send OTP code via Telegram"),
+        help_text=_("If checked, user receives OTP in Telegram. If unchecked, direct mobile polling login is enabled."),
+    )
+    otp_wait_seconds = models.IntegerField(
+        default=60,
+        verbose_name=_("OTP wait / cooldown (seconds)"),
+        help_text=_("Time in seconds user must wait before requesting a new OTP."),
+    )
+    otp_timeout_seconds = models.IntegerField(
+        default=300,
+        verbose_name=_("OTP expiration timeout (seconds)"),
+        help_text=_("Validity period of the OTP code in seconds."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+
+    class Meta:
+        verbose_name = _("Site Config")
+        verbose_name_plural = _("Site Configs")
+
+    def __str__(self):
+        return f"SiteConfig (send_otp_code={self.send_otp_code}, wait={self.otp_wait_seconds}s, timeout={self.otp_timeout_seconds}s)"
+

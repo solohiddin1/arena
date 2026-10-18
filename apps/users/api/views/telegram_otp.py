@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from apps.shared.enum import ResultCodes
 from apps.shared.utils import error_response, success_response
+from apps.users.api.serializers.poll import TelegramPollSerializer
 from apps.users.api.serializers.telegram_otp_verify import TelegramOtpVerifySerializer
 from apps.users.services.telegram import TgOtpService
 
@@ -34,10 +35,14 @@ class TelegramWebhookView(APIView):
         return Response({"ok": True})
 
 
-@extend_schema(tags=["auth"], summary="Poll Telegram authentication status")
+@extend_schema(
+    tags=["auth"],
+    summary="Poll Telegram authentication status",
+    parameters=[TelegramPollSerializer],
+)
 class TelegramOtpPollView(GenericAPIView):
     permission_classes = [AllowAny]
-    serializer_class = None
+    serializer_class = TelegramPollSerializer
 
     def get(self, request, *args, **kwargs):
         token = request.query_params.get("token")

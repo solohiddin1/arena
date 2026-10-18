@@ -21,26 +21,6 @@ class AmenitySerializer(serializers.ModelSerializer):
         return obj.safe_translation_getter("title", any_language=True)
 
 
-class AmenityCreateSerializer(serializers.ModelSerializer):
-    title = serializers.CharField(max_length=100)
-
-    class Meta:
-        model = Amenity
-        fields = ("id", "title", "is_positive")
-
-    def create(self, validated_data):
-        title = validated_data.pop("title")
-        is_positive = validated_data.get("is_positive", True)
-        amenity = Amenity.objects.create(
-            is_positive=is_positive,
-            is_main=False,
-        )
-        amenity.set_current_language("uz")
-        amenity.title = title
-        amenity.save()
-        for lang in ["ru", "en"]:
-            amenity.create_translation(lang, title=title)
-        return amenity
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -200,58 +180,96 @@ class PostDetailSerializer(PostListSerializer):
 class PostWriteSerializer(serializers.ModelSerializer):
     work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
     prices = serializers.CharField(required=False, allow_null=True, write_only=True)
+    amenities = serializers.JSONField(required=False, write_only=True)
     custom_amenities = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,
         write_only=True,
     )
-    amenity_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Amenity.objects.all(),
-        many=True,
+    amenity_ids = serializers.ListField(
+        child=serializers.IntegerField(),
         required=False,
         write_only=True,
-        source="amenities",
     )
 
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, "copy") else dict(data)
-        if hasattr(data, 'getlist'):
-            raw = data.getlist('amenity_ids')
+        if hasattr(data, "getlist"):
+            raw_amenities = data.getlist("amenities")
+            if raw_amenities:
+                if len(raw_amenities) == 1 and isinstance(raw_amenities[0], str):
+                    val = raw_amenities[0].strip()
+                    if not val:
+                        data["amenities"] = []
+                    elif val.startswith("[") or val.startswith("{"):
+                        try:
+                            data["amenities"] = json.loads(val)
+                        except (json.JSONDecodeError, ValueError):
+                            data["amenities"] = [val]
+                    elif "," in val:
+                        data["amenities"] = [i.strip() for i in val.split(",") if i.strip()]
+                    else:
+                        data["amenities"] = [val]
+                else:
+                    parsed_list = []
+                    for item in raw_amenities:
+                        if isinstance(item, str) and (item.strip().startswith("{") or item.strip().startswith("[")):
+                            try:
+                                parsed_list.append(json.loads(item))
+                            except Exception:
+                                parsed_list.append(item)
+                        else:
+                            parsed_list.append(item)
+                    data["amenities"] = parsed_list
+
+            raw = data.getlist("amenity_ids")
             if len(raw) == 1 and isinstance(raw[0], str):
                 value = raw[0].strip()
                 if not value:
-                    data.setlist('amenity_ids', [])
-                elif value.startswith('['):
+                    data.setlist("amenity_ids", [])
+                elif value.startswith("["):
                     try:
                         parsed = json.loads(value)
-                        data.setlist('amenity_ids', [str(i) for i in parsed])
+                        data.setlist("amenity_ids", [int(i) for i in parsed])
                     except (json.JSONDecodeError, ValueError):
                         pass
-                elif ',' in value:
-                    data.setlist('amenity_ids', [i.strip() for i in value.split(',') if i.strip()])
+                elif "," in value:
+                    data.setlist("amenity_ids", [int(i.strip()) for i in value.split(",") if i.strip().isdigit()])
 
-            raw_custom = data.getlist('custom_amenities')
+            raw_custom = data.getlist("custom_amenities")
             if len(raw_custom) == 1 and isinstance(raw_custom[0], str):
                 val = raw_custom[0].strip()
                 if not val:
-                    data.setlist('custom_amenities', [])
-                elif val.startswith('['):
+                    data.setlist("custom_amenities", [])
+                elif val.startswith("["):
                     try:
                         parsed = json.loads(val)
-                        data.setlist('custom_amenities', [str(i) for i in parsed])
+                        data.setlist("custom_amenities", [str(i) for i in parsed])
                     except (json.JSONDecodeError, ValueError):
                         pass
-                elif ',' in val:
-                    data.setlist('custom_amenities', [i.strip() for i in val.split(',') if i.strip()])
-        elif isinstance(data.get("custom_amenities"), str):
+                elif "," in val:
+                    data.setlist("custom_amenities", [i.strip() for i in val.split(",") if i.strip()])
+        elif isinstance(data.get("amenities"), str):
+            val = data["amenities"].strip()
+            if val.startswith("[") or val.startswith("{"):
+                try:
+                    data["amenities"] = json.loads(val)
+                except Exception:
+                    pass
+            elif "," in val:
+                data["amenities"] = [i.strip() for i in val.split(",") if i.strip()]
+            elif val:
+                data["amenities"] = [val]
+
+        if isinstance(data.get("custom_amenities"), str):
             val = data["custom_amenities"].strip()
-            if val.startswith('['):
+            if val.startswith("["):
                 try:
                     data["custom_amenities"] = json.loads(val)
                 except Exception:
                     pass
-            elif ',' in val:
-                data["custom_amenities"] = [i.strip() for i in val.split(',') if i.strip()]
+            elif "," in val:
+                data["custom_amenities"] = [i.strip() for i in val.split(",") if i.strip()]
             elif val:
                 data["custom_amenities"] = [val]
 
@@ -273,9 +291,57 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "district",
             "category",
             "work_hours",
+            "amenities",
             "amenity_ids",
             "custom_amenities",
         )
+
+    def validate_amenities(self, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            val = value.strip()
+            if not val:
+                return []
+            try:
+                value = json.loads(val)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid JSON for amenities.")
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Amenities must be a list.")
+
+        cleaned = []
+        for item in value:
+            if isinstance(item, int):
+                cleaned.append({"id": item})
+            elif isinstance(item, str):
+                s = item.strip()
+                if not s:
+                    continue
+                if s.isdigit():
+                    cleaned.append({"id": int(s)})
+                else:
+                    cleaned.append({"title": s, "is_positive": True})
+            elif isinstance(item, dict):
+                amenity_id = item.get("id")
+                title = item.get("title") or item.get("name")
+                is_positive = item.get("is_positive", True)
+                entry = {}
+                if amenity_id is not None:
+                    try:
+                        entry["id"] = int(amenity_id)
+                    except (ValueError, TypeError):
+                        raise serializers.ValidationError(f"Invalid amenity id: {amenity_id}")
+                if title:
+                    entry["title"] = str(title).strip()
+                if "is_positive" in item:
+                    entry["is_positive"] = bool(is_positive)
+                if not entry.get("id") and not entry.get("title"):
+                    continue
+                cleaned.append(entry)
+            else:
+                raise serializers.ValidationError("Each amenity item must be an ID, string, or object.")
+        return cleaned
 
     def validate_work_hours(self, value):
         if value is None:

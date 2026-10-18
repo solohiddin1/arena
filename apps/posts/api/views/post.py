@@ -7,7 +7,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.posts.api.serializers.post import (
-    AmenityCreateSerializer,
     AmenitySerializer,
     CategorySerializer,
     PostBaseSerializer,
@@ -146,10 +145,15 @@ class MyPostListView(GenericAPIView):
                     "enum": ["TELEGRAM", "INSTAGRAM", "WHATSAPP", "FACEBOOK", "OTHER"],
                     "description": "Social media type"
                 },
+                "amenities": {
+                    "type": "string",
+                    "example": '[{"id": 1}, {"title": "Billiards", "is_positive": true}]',
+                    "description": "JSON string or array. List of amenity IDs or objects ({'id': 1} or {'title': '...', 'is_positive': true})."
+                },
                 "amenity_ids": {
                     "type": "array",
                     "items": {"type": "integer"},
-                    "description": "List of amenity IDs"
+                    "description": "List of amenity IDs (legacy format)"
                 },
                 "prices": {
                     "type": "string",
@@ -260,10 +264,15 @@ class PostDetailView(GenericAPIView):
                     "enum": ["TELEGRAM", "INSTAGRAM", "WHATSAPP", "FACEBOOK", "OTHER"],
                     "description": "Social media type"
                 },
+                "amenities": {
+                    "type": "string",
+                    "example": '[{"id": 1}, {"id": 15, "title": "Updated sauna", "is_positive": true}]',
+                    "description": "JSON string or array. List of amenity IDs or objects. Supplying title for existing amenity updates it."
+                },
                 "amenity_ids": {
                     "type": "array",
                     "items": {"type": "integer"},
-                    "description": "List of amenity IDs"
+                    "description": "List of amenity IDs (legacy format)"
                 },
                 "prices": {
                     "type": "string",
@@ -399,30 +408,6 @@ class AmenityListView(GenericAPIView):
             is_main=is_main,
         )
         return SuccessResponse(AmenitySerializer(amenities, many=True).data)
-
-    def post(self, request, *args, **kwargs):
-        # Allow creating amenity directly via POST /amenities/
-        serializer = AmenityCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        amenity = serializer.save()
-        return SuccessResponse(AmenitySerializer(amenity).data, status=status.HTTP_201_CREATED)
-
-
-@extend_schema(
-    tags=["post-amenity"],
-    summary="Create custom amenity",
-    request=AmenityCreateSerializer,
-    responses={201: AmenitySerializer},
-)
-class AmenityCreateView(GenericAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = AmenityCreateSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        amenity = serializer.save()
-        return SuccessResponse(AmenitySerializer(amenity).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["post-category"], summary="List categories")

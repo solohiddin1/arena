@@ -19,7 +19,7 @@ class TelegramRepo:
     def get_pending_token_by_telegram_id(telegram_id: int) -> TelegramLoginToken | None:
         return (
             TelegramLoginToken.objects.filter(telegram_id=telegram_id, status="PENDING")
-            .order_by("-created_at")
+            .order_by("-id")
             .first()
         )
 
@@ -48,7 +48,7 @@ class TelegramRepo:
     def confirm_latest_with_user(user):
         row = (
             TelegramLoginToken.objects.filter(user=user, status="PENDING")
-            .order_by("-created_at")
+            .order_by("-id")
             .first()
         )
         if row:

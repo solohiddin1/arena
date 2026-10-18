@@ -57,3 +57,14 @@ class SiteConfig(models.Model):
     def __str__(self):
         return f"SiteConfig (send_otp_code={self.send_otp_code}, wait={self.otp_wait_seconds}s, timeout={self.otp_timeout_seconds}s)"
 
+    @classmethod
+    def get_config(cls):
+        config = cls.objects.order_by("-id").first()
+        if not config:
+            config = cls.objects.create(
+                send_otp_code=True,
+                otp_wait_seconds=60,
+                otp_timeout_seconds=300,
+            )
+        return config
+

@@ -44,11 +44,14 @@ class TelegramClient:
         if reply_markup is not None:
             payload["reply_markup"] = reply_markup
         try:
-            requests.post(
+            resp = requests.post(
                 f"https://api.telegram.org/bot{token}/sendMessage",
                 json=payload,
                 timeout=10,
             )
+            data = resp.json()
+            if not data.get("ok"):
+                logger.error(f"Telegram sendMessage failed for chat {chat_id}: {data}")
         except Exception as e:
             logger.warning(f"Failed to send telegram message to {chat_id}: {e}")
 
@@ -56,8 +59,8 @@ class TelegramClient:
 class TgOtpService:
     @classmethod
     def request(cls):
-        config = SiteConfig.objects.first()
-        otp_mode = config.send_otp_code if config else False
+        config = SiteConfig.get_config()
+        otp_mode = bool(config.send_otp_code)
 
         token = secrets.token_urlsafe(32)
         ttl = getattr(settings, "TELEGRAM_LOGIN_TOKEN_TTL_MINUTES", 5)
@@ -158,19 +161,28 @@ class TgOtpService:
             return {"error": "invalid"}
 
         user = row.user
-        config = SiteConfig.objects.first()
-        timeout_seconds = config.otp_timeout_seconds if config and config.otp_timeout_seconds else 300
+        config = SiteConfig.get_config()
+        timeout_seconds = config.otp_timeout_seconds or 300
         cutoff = timezone.now() - timedelta(seconds=timeout_seconds)
 
         otp = None
         try:
             code_int = int(code)
-            otp = UserAuthOtp.objects.filter(
-                user=user,
-                code=code_int,
-                is_used=False,
-                otp_created_at__gte=cutoff,
-            ).order_by("-otp_created_at").first()
+            candidate = (
+                UserAuthOtp.objects.filter(
+                    user=user,
+                    code=code_int,
+                    is_used=False,
+                )
+                .order_by("-id")
+                .first()
+            )
+            if candidate and candidate.otp_created_at:
+                otp_time = candidate.otp_created_at
+                if timezone.is_naive(otp_time):
+                    otp_time = timezone.make_aware(otp_time)
+                if otp_time >= cutoff:
+                    otp = candidate
         except (ValueError, TypeError):
             pass
 
@@ -178,8 +190,12 @@ class TgOtpService:
         if otp:
             otp_valid = True
         elif user.otp and user.otp == str(code):
-            if user.otp_created_at and user.otp_created_at >= cutoff:
-                otp_valid = True
+            user_otp_time = user.otp_created_at
+            if user_otp_time:
+                if timezone.is_naive(user_otp_time):
+                    user_otp_time = timezone.make_aware(user_otp_time)
+                if user_otp_time >= cutoff:
+                    otp_valid = True
 
         if not otp_valid:
             return {"error": "invalid_otp"}
@@ -208,7 +224,8 @@ class TgOtpService:
     @classmethod
     def _handle_contact(cls, chat_id, telegram_id, frm, contact):
         logger.info(f"contact: {contact}")
-        if contact.get("user_id") != telegram_id:
+        contact_user_id = contact.get("user_id")
+        if contact_user_id is not None and str(contact_user_id) != str(telegram_id):
             TelegramClient.send_message(chat_id, WRONG_CONTACT_MSG)
             return
 

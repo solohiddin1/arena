@@ -66,7 +66,13 @@ class Command(BaseCommand):
                 created += 1
                 continue
 
-            Category.objects.create(title=title, image=image_path)
+            Category.objects.create(
+                title=title,
+                title_uz=title,
+                title_ru=title,
+                title_en=title,
+                image=image_path,
+            )
             self.stdout.write(self.style.SUCCESS(f"  created: {title}  <- {image_path}"))
             created += 1
 

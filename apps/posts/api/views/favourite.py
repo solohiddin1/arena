@@ -16,7 +16,7 @@ class FavouriteListView(GenericAPIView):
         favourites = (
             Favourite.objects.filter(user=request.user)
             .select_related("post__owner", "post__region", "post__district", "post__category")
-            .prefetch_related("post__work_days", "post__amenities__translations")
+            .prefetch_related("post__work_days", "post__amenities")
             .order_by("-created_at")
         )
         serializer = FavouriteReadSerializer(favourites, many=True, context={"request": request})

@@ -3,11 +3,10 @@ from typing import Any
 
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings
 
-from apps.users.models import User, UserDevice,VersionControl
-from apps.shared.models import Region , District
+from apps.users.models import User
 
 
 class AuthenticationSerializer(serializers.Serializer):

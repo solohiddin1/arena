@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from parler.admin import TranslatableAdmin
+from modeltranslation.admin import TranslationAdmin
 
 from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate, AppFeedback, Favourite, AdminNotification
 
@@ -91,7 +91,7 @@ class FeedbackAdmin(admin.ModelAdmin):
     list_filter = ('user', 'post')
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(TranslationAdmin):
     list_display = ('title', 'image_preview')
     search_fields = ('title',)
     readonly_fields = ('image_preview',)
@@ -104,10 +104,10 @@ class CategoryAdmin(admin.ModelAdmin):
     image_preview.short_description = 'Preview'
 
 @admin.register(Amenity)
-class AmenityAdmin(TranslatableAdmin):
+class AmenityAdmin(TranslationAdmin):
     list_display = ('id', 'title', 'is_main', 'is_positive')
     list_filter = ('is_main', 'is_positive')
-    search_fields = ('translations__title',)
+    search_fields = ('title',)
 
 
 @admin.register(PostImage)

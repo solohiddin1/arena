@@ -4,6 +4,7 @@ from .login_user import LoginUser
 from .otp_forgot_password import OtpForgotPassword
 from .register import RegisterUser
 from .profile_view import UserProfileView
+from .token_refresh import CustomTokenRefreshView
 from .user_update import UserUpdate
 from .update_profile_image import UserUpdateProfileImage
 from .verify_forgot_password import VerifyForgotPassword
@@ -16,6 +17,7 @@ __all__ = [
     "OtpForgotPassword",
     "RegisterUser",
     "UserProfileView",
+    "CustomTokenRefreshView",
     "UserUpdate",
     "UserUpdateProfileImage",
     "VerifyForgotPassword",

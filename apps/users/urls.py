@@ -1,11 +1,10 @@
 from django.urls import path
 
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
 from apps.users.services.google import GoogleCallback, GoogleLoginRedirect, GoogleMobileAuth
 from apps.users.api.views.apply_new_password import ApplyNewPassword
 from apps.users.api.views.check_register import CheckRegister
 from apps.users.api.views.login_user import LoginUser
+from apps.users.api.views.token_refresh import CustomTokenRefreshView
 from apps.users.api.views.otp_forgot_password import OtpForgotPassword
 from apps.users.api.views.profile_view import UserProfileView
 from apps.users.api.views.register import RegisterUser
@@ -30,8 +29,9 @@ urlpatterns = [
     path('auth/check-register/', CheckRegister.as_view(), name='check_register'),
     path('auth/verify-otp/', VerifyOtp.as_view(), name='verify_otp'),
 
-    # login
+    # login & token
     path('auth/login/', LoginUser.as_view(), name='login'),
+    path('auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
 
     # telegram auth
     path('auth/telegram/request/', TelegramOtpView.as_view(), name='telegram_otp_request'),
@@ -56,6 +56,4 @@ urlpatterns = [
     # google auth
     path('auth/google/login/', GoogleMobileAuth.as_view(), name='google_login'),
     path('accounts/google/login/callback/', GoogleCallback.as_view(), name='google_callback'),
-    # path('auth/google/mobile/', GoogleMobileAuth.as_view(), name='google_mobile_auth'),
-
 ]

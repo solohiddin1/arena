@@ -14,9 +14,7 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
         refresh = self.token_class(attrs["refresh"])
 
         user_id = refresh.payload.get(api_settings.USER_ID_CLAIM)
-        role = refresh.payload.get("role")
-
-        if not user_id or not role:
+        if not user_id or not User.objects.filter(id=user_id, is_active=True).exists():
             raise AuthenticationFailed(
                 self.error_messages["no_active_account"],
                 "no_active_account",
@@ -34,7 +32,6 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
             refresh.set_jti()
             refresh.set_exp()
             refresh.set_iat()
-            refresh.outstand()
 
             data["refresh"] = str(refresh)
 

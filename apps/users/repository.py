@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.shared.middleware.middleware import get_logger
-from apps.users.models import User, UserDevice, UserAuthOtp
+from apps.users.models import User, UserAuthOtp
 from django.core.mail import send_mail as send_otp
 from django.conf import settings
 from django.core.mail import send_mail as send_otp
@@ -114,51 +114,6 @@ def update_user_set_verified(user_id, is_verified=True, is_active=True):
 
 
 
-def get_user_device_by_user_role_device(user, role, device_id):
-    try:
-        return UserDevice.objects.select_related('user').filter(
-            user=user,
-            role=role,
-            device_id=device_id
-        ).first()
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-def create_user_device(user, role, device_id, device_type, fcm_token):
-    try:
-        device = UserDevice.objects.create(
-            user=user,
-            role=role,
-            device_id=device_id,
-            device_type=device_type,
-            fcm_token=fcm_token
-        )
-        device.save()
-        return device
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-def update_user_device_fcm_token(device, fcm_token):
-    try:
-        device.fcm_token = fcm_token
-        device.save()
-        return device
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
-
-def delete_user_device_by_user_role_device(user, role, device_id):
-    try:
-        return UserDevice.objects.filter(user=user, role=role, device_id=device_id).delete()
-    except Exception as e:
-        logger.exception(e)
-        raise e
-
 
 def update_user_referral_code(user_referral, invite_ref_code):
     try:
@@ -229,13 +184,6 @@ def check_user_exists_by_phone(phone):
         logger.exception(e)
         raise e
 
-
-def check_user_device_exists(device_id):
-    try:
-        return UserDevice.objects.filter(device_id=device_id).exists()
-    except Exception as e:
-        logger.exception(e)
-        raise e
 
 
 def get_user_by_id(user_id, is_active=True):

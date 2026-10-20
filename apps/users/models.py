@@ -99,18 +99,3 @@ class Device(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.device_type}) - {self.user_id}"
-
-
-class UserDevice(BaseModel):
-    DEVICE_TYPE_CHOICES = (
-        ("IOS", "IOS"),
-        ("ANDROID", "ANDROID")
-    )
-
-    user = models.ForeignKey(User, models.CASCADE, "user_devices", verbose_name=_("user"))
-    role = models.CharField(max_length=20, verbose_name=_("role"))
-    device_id = models.CharField(max_length=50, verbose_name=_("device_id"))
-    device_type = models.CharField(max_length=10, choices=DEVICE_TYPE_CHOICES, verbose_name=_("device_type"))
-
-    class Meta:
-        unique_together = ('user', 'device_id', 'role')

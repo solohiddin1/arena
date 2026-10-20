@@ -31,6 +31,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 BASE_APPS = [
+    'modeltranslation',
     'jazzmin',
     "arena.admin_site.MyAdminConfig",
     'django.contrib.auth',
@@ -48,7 +49,6 @@ APPS = [
 ]
 
 LIBS = [
-    'parler',
     'rest_framework',
     'django_filters',
     'drf_spectacular',
@@ -175,20 +175,10 @@ LANGUAGES = [
 
 LOCALE_PATHS = [BASE_DIR / 'locale']
 
-# django-parler: translatable model configuration.
-PARLER_DEFAULT_LANGUAGE_CODE = 'uz'
-
-PARLER_LANGUAGES = {
-    None: (
-        {'code': 'uz'},
-        {'code': 'ru'},
-        {'code': 'en'},
-    ),
-    'default': {
-        'fallback': 'uz',
-        'hide_untranslated': False,
-    },
-}
+# django-modeltranslation configuration
+MODELTRANSLATION_DEFAULT_LANGUAGE = 'uz'
+MODELTRANSLATION_LANGUAGES = ('uz', 'ru', 'en')
+MODELTRANSLATION_FALLBACK_LANGUAGES = ('uz', 'ru', 'en')
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=30),

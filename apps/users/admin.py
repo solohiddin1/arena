@@ -1,8 +1,7 @@
 from django.contrib import admin
-from .models import User, UserAuthOtp, UserDevice, Device, TelegramLoginToken
+from .models import User, UserAuthOtp, Device, TelegramLoginToken
 from django.utils.html import format_html
 
-# Register your models here.
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -27,11 +26,6 @@ class TelegramLoginTokenAdmin(admin.ModelAdmin):
     list_display = ['id', 'token', 'status', 'telegram_id', 'user', 'otp_mode', 'expires_at', 'created_at']
     list_filter = ['status', 'otp_mode']
     search_fields = ['token', 'telegram_id']
-
-
-@admin.register(UserDevice)
-class UserDeviceAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'role', 'device_id', 'device_type']
 
 
 @admin.register(UserAuthOtp)

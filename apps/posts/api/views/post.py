@@ -410,11 +410,12 @@ class AmenityListView(GenericAPIView):
         return SuccessResponse(AmenitySerializer(amenities, many=True).data)
 
 
-@extend_schema(tags=["post-category"], summary="List categories")
+@extend_schema(tags=["post-category"], summary="List categories", responses={200: CategorySerializer(many=True)})
 class CategoryListView(GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = CategorySerializer
 
     def get(self, request, *args, **kwargs):
         categories = post_service.list_categories()
-        serializer = CategorySerializer(categories, many=True, context={"request": request})
+        serializer = self.get_serializer(categories, many=True, context={"request": request})
         return SuccessResponse(serializer.data)

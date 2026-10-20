@@ -1,6 +1,6 @@
 import math
 
-from django.db.models import Avg, QuerySet
+from django.db.models import Avg, Q, QuerySet
 from apps.users.models import User
 from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays, PostCertificate
 
@@ -57,7 +57,7 @@ class PostService:
         queryset = (
             Post.objects.filter(state="ACCEPTED")
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities__translations")
+            .prefetch_related("work_days", "amenities")
             .filter(id=post_id)
         )
         if not include_hidden:
@@ -71,7 +71,7 @@ class PostService:
         queryset = (
             Post.objects.filter(owner=user)
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities__translations")
+            .prefetch_related("work_days", "amenities")
             .filter(id=post_id)
         )
         if not include_hidden:
@@ -81,7 +81,7 @@ class PostService:
     def list_my_posts(self, user, include_hidden: bool = False):
         queryset = (
             Post.objects.select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities__translations")
+            .prefetch_related("work_days", "amenities")
             .filter(owner=user)
             .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
             .order_by("-created_at")
@@ -94,7 +94,7 @@ class PostService:
         queryset = (
             Post.objects.filter(state="ACCEPTED", is_hidden=False)
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities__translations")
+            .prefetch_related("work_days", "amenities")
             .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
         )
 
@@ -194,9 +194,10 @@ class PostService:
                     title_str = str(title).strip()
                     # If user is updating a custom amenity (non-main system amenity)
                     if not amenity.is_main:
-                        for lang in ["uz", "ru", "en"]:
-                            amenity.set_current_language(lang)
-                            amenity.title = title_str
+                        amenity.title = title_str
+                        amenity.title_uz = title_str
+                        amenity.title_ru = title_str
+                        amenity.title_en = title_str
                         updated = True
 
                 if updated:
@@ -211,16 +212,21 @@ class PostService:
                 if not title_str:
                     continue
                 # Custom amenity created on the fly
-                amenity = Amenity.objects.filter(translations__title__iexact=title_str).first()
+                amenity = Amenity.objects.filter(
+                    Q(title__iexact=title_str)
+                    | Q(title_uz__iexact=title_str)
+                    | Q(title_ru__iexact=title_str)
+                    | Q(title_en__iexact=title_str)
+                ).first()
                 if not amenity:
                     amenity = Amenity.objects.create(
+                        title=title_str,
+                        title_uz=title_str,
+                        title_ru=title_str,
+                        title_en=title_str,
                         is_positive=bool(is_positive),
                         is_main=False,
                     )
-                    for lang in ["uz", "ru", "en"]:
-                        amenity.set_current_language(lang)
-                        amenity.title = title_str
-                    amenity.save()
                 else:
                     if "is_positive" in item and amenity.is_positive != bool(is_positive):
                         amenity.is_positive = bool(is_positive)
@@ -359,7 +365,7 @@ class PostService:
         is_positive: bool | None = None,
         is_main: bool | None = True,
     ) -> QuerySet[Amenity]:
-        queryset = Amenity.objects.prefetch_related("translations").order_by("id")
+        queryset = Amenity.objects.all().order_by("id")
         if is_positive is not None:
             queryset = queryset.filter(is_positive=is_positive)
         if is_main is not None:

@@ -2,7 +2,6 @@ from apps.users.models import User, BaseModel
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
-from parler.models import TranslatableModel, TranslatedFields
 
 
 class AdminNotification(BaseModel):
@@ -69,10 +68,8 @@ class Feedback(BaseModel):
     def __str__(self):
         return f"{self.user.email} - {self.post.title}"
 
-class Amenity(TranslatableModel, BaseModel):
-    translations = TranslatedFields(
-        title=models.CharField(max_length=100, verbose_name=_("title"), blank=True, null=True),
-    )
+class Amenity(BaseModel):
+    title = models.CharField(max_length=100, verbose_name=_("title"), blank=True, null=True)
     is_positive = models.BooleanField(default=True, verbose_name=_("is positive"))
     is_main = models.BooleanField(default=False, db_index=True, verbose_name=_("is main"))
 
@@ -85,7 +82,7 @@ class Amenity(TranslatableModel, BaseModel):
         return self.is_main
 
     def __str__(self):
-        return self.safe_translation_getter("title", any_language=True) or f"Amenity #{self.pk}"
+        return self.title or f"Amenity #{self.pk}"
 
 
 class Post(BaseModel):

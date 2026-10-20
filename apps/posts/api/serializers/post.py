@@ -8,25 +8,17 @@ from apps.shared.serializers import PostRegionSerializer, PostDistrictSerializer
 
 
 class AmenitySerializer(serializers.ModelSerializer):
-    title = serializers.SerializerMethodField()
     main = serializers.BooleanField(source="is_main", read_only=True)
 
     class Meta:
         model = Amenity
-        fields = ("id", "title", "is_positive", "is_main", "main")
-
-    def get_title(self, obj):
-        # Returns the title in the active language (set from the Accept-Language
-        # header by LocaleMiddleware), falling back to any available translation.
-        return obj.safe_translation_getter("title", any_language=True)
-
-
+        fields = ("id", "title", "title_uz", "title_ru", "title_en", "is_positive", "is_main", "main")
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "title", "image")
+        fields = ("id", "title", "title_uz", "title_ru", "title_en", "image")
 
 
 class PostWorkDaysSerializer(serializers.ModelSerializer):

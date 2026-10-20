@@ -125,7 +125,7 @@ class Post(BaseModel):
     amenities = models.ManyToManyField("Amenity", related_name='posts', blank=True)
 
     def __str__(self):
-        return self.title
+        return self.title or f"Post #{self.pk}"
 
     @property
     def average_rating(self):
@@ -143,7 +143,8 @@ class PostImage(BaseModel):
     is_hidden = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Image for {self.post.title}"
+        title = self.post.title if (self.post and self.post.title) else f"Post #{self.post_id}"
+        return f"Image for {title}"
 
 
 class PostCertificate(BaseModel):
@@ -153,7 +154,8 @@ class PostCertificate(BaseModel):
     is_hidden = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Certificate for {self.post.title}"
+        title = self.post.title if (self.post and self.post.title) else f"Post #{self.post_id}"
+        return f"Certificate for {title}"
 
 
 class Category(BaseModel):
@@ -161,7 +163,8 @@ class Category(BaseModel):
     image = models.ImageField(upload_to='category_images/', blank=True, null=True)
 
     def __str__(self):
-        return self.title
+        title = self.title or getattr(self, "title_uz", None) or getattr(self, "title_ru", None) or getattr(self, "title_en", None)
+        return str(title or f"Category #{self.pk}")
 
 class PostWorkDays(BaseModel):
     DAYS_OF_WEEK = [

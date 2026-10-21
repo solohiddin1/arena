@@ -102,12 +102,18 @@ class CustomAdmin(TranslationAdmin):
         }
 
 
+class AmenityInline(admin.TabularInline):
+    model = Amenity
+    extra = 0
+
+
 @admin.register(Category)
 class CategoryAdmin(CustomAdmin):
     list_display = ('id', 'title', 'ordering', 'image_preview')
     list_editable = ('ordering',)
     search_fields = ('title', 'title_uz', 'title_ru', 'title_en')
     readonly_fields = ('image_preview',)
+    inlines = [AmenityInline]
 
     def image_preview(self, obj):
         if obj.image:

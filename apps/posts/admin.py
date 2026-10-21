@@ -90,10 +90,23 @@ class FeedbackAdmin(admin.ModelAdmin):
     search_fields = ('comment', 'user__email', 'post__title')
     list_filter = ('user', 'post')
 
+class CustomAdmin(TranslationAdmin):
+    class Media:
+        js = (
+            'https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js',
+            'https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js',
+            'modeltranslation/js/tabbed_translation_fields.js',
+        )
+        css = {
+            'screen': ('modeltranslation/css/tabbed_translation_fields.css',),
+        }
+
+
 @admin.register(Category)
-class CategoryAdmin(TranslationAdmin):
-    list_display = ('title', 'image_preview')
-    search_fields = ('title',)
+class CategoryAdmin(CustomAdmin):
+    list_display = ('id', 'title', 'ordering', 'image_preview')
+    list_editable = ('ordering',)
+    search_fields = ('title', 'title_uz', 'title_ru', 'title_en')
     readonly_fields = ('image_preview',)
 
     def image_preview(self, obj):
@@ -103,11 +116,12 @@ class CategoryAdmin(TranslationAdmin):
 
     image_preview.short_description = 'Preview'
 
+
 @admin.register(Amenity)
-class AmenityAdmin(TranslationAdmin):
+class AmenityAdmin(CustomAdmin):
     list_display = ('id', 'title', 'is_main', 'is_positive')
     list_filter = ('is_main', 'is_positive')
-    search_fields = ('title',)
+    search_fields = ('title', 'title_uz', 'title_ru', 'title_en')
 
 
 @admin.register(PostImage)

@@ -1,7 +1,5 @@
 from django.db import models
 from django.core.validators import RegexValidator
-from django.db import models
-from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser
 from django.utils.translation import gettext_lazy as _
 from .managers import MyUserManager
@@ -33,6 +31,11 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
     otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
     otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
+
+    first_name = None
+    last_name = None
+    groups = None
+    user_permissions = None
 
     objects = MyUserManager()
 

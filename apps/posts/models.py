@@ -161,6 +161,19 @@ class PostCertificate(BaseModel):
 class Category(BaseModel):
     title = models.CharField(max_length=255, verbose_name="Category title", null=True)
     image = models.ImageField(upload_to='category_images/', blank=True, null=True)
+    ordering = models.PositiveIntegerField(default=0, blank=True, null=True, db_index=True, verbose_name=_("Ordering"))
+
+    class Meta:
+        ordering = ['ordering', 'id']
+        verbose_name = _("Category")
+        verbose_name_plural = _("Categories")
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding or self.pk is None
+        super().save(*args, **kwargs)
+        if self.ordering is None or (is_new and self.ordering == 0):
+            self.ordering = self.pk
+            super().save(update_fields=['ordering'])
 
     def __str__(self):
         title = self.title or getattr(self, "title_uz", None) or getattr(self, "title_ru", None) or getattr(self, "title_en", None)

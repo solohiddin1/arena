@@ -358,7 +358,7 @@ class PostService:
         return feedback
 
     def list_categories(self) -> QuerySet[Category]:
-        return Category.objects.all().order_by("title")
+        return Category.objects.all().order_by("ordering", "id")
 
     def list_amenities(
         self,

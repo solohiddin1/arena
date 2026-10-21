@@ -18,7 +18,7 @@ class AmenitySerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "title", "title_uz", "title_ru", "title_en", "image")
+        fields = ("id", "title", "title_uz", "title_ru", "title_en", "image", "ordering")
 
 
 class PostWorkDaysSerializer(serializers.ModelSerializer):

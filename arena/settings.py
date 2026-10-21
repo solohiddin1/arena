@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+START_TIME = time.time()
 
 def env_bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}

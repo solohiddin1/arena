@@ -72,6 +72,8 @@ class Amenity(BaseModel):
     title = models.CharField(max_length=100, verbose_name=_("title"), blank=True, null=True)
     is_positive = models.BooleanField(default=True, verbose_name=_("is positive"))
     is_main = models.BooleanField(default=False, db_index=True, verbose_name=_("is main"))
+    category = models.ForeignKey("Category", on_delete=models.SET_NULL,
+                                 related_name='category_amenities', blank=True, null=True)
 
     class Meta:
         verbose_name = _("Amenity")

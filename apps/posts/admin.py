@@ -119,7 +119,7 @@ class CategoryAdmin(CustomAdmin):
 
 @admin.register(Amenity)
 class AmenityAdmin(CustomAdmin):
-    list_display = ('id', 'title', 'is_main', 'is_positive')
+    list_display = ('id', 'title', 'category', 'is_main', 'is_positive')
     list_filter = ('is_main', 'is_positive')
     search_fields = ('title', 'title_uz', 'title_ru', 'title_en')
 

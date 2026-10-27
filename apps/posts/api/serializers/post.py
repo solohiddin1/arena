@@ -12,7 +12,7 @@ class AmenitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Amenity
-        fields = ("id", "title", "title_uz", "title_ru", "title_en", "is_positive", "is_main", "main")
+        fields = ("id", "title", "title_uz", "title_ru", "title_en", "is_positive", "is_main", "main", "category")
 
 
 class CategorySerializer(serializers.ModelSerializer):

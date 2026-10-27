@@ -364,10 +364,13 @@ class PostService:
         self,
         is_positive: bool | None = None,
         is_main: bool | None = True,
+        category_id: int | None = None,
     ) -> QuerySet[Amenity]:
         queryset = Amenity.objects.all().order_by("id")
         if is_positive is not None:
             queryset = queryset.filter(is_positive=is_positive)
         if is_main is not None:
             queryset = queryset.filter(is_main=is_main)
+        if category_id is not None:
+            queryset = queryset.filter(category_id=category_id)
         return queryset

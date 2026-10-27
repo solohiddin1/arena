@@ -369,6 +369,13 @@ class PostDeleteView(GenericAPIView):
     summary="List amenities",
     parameters=[
         OpenApiParameter(
+            name="category",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Filter amenities by category ID.",
+        ),
+        OpenApiParameter(
             name="is_main",
             type=OpenApiTypes.BOOL,
             location=OpenApiParameter.QUERY,
@@ -390,6 +397,11 @@ class AmenityListView(GenericAPIView):
     serializer_class = AmenitySerializer
 
     def get(self, request, *args, **kwargs):
+        category_param = request.query_params.get("category") or request.query_params.get("category_id")
+        category_id = None
+        if category_param is not None and str(category_param).isdigit():
+            category_id = int(category_param)
+
         is_main_param = request.query_params.get("is_main")
         if is_main_param is not None:
             if is_main_param.lower() in ("all", "none"):
@@ -406,6 +418,7 @@ class AmenityListView(GenericAPIView):
         amenities = post_service.list_amenities(
             is_positive=is_positive,
             is_main=is_main,
+            category_id=category_id,
         )
         return SuccessResponse(AmenitySerializer(amenities, many=True).data)
 

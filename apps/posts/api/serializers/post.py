@@ -2,7 +2,7 @@ import json
 
 from rest_framework import serializers
 
-from apps.posts.models import Amenity, Category, Post, PostImage, PostWorkDays, PostCertificate
+from apps.posts.models import Amenity, Category, Post, PostImage, PostWorkDays, PostCertificate, PostSocialMedia
 from apps.users.api.serializers.profile import UserProfileSerializer
 from apps.shared.serializers import PostRegionSerializer, PostDistrictSerializer
 
@@ -50,6 +50,12 @@ class PostCertificateSerializer(serializers.ModelSerializer):
         fields = ("id", "image", "image_compressed")
 
 
+class PostSocialMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostSocialMedia
+        fields = ("id", "type", "link")
+
+
 class PostBaseSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     total_feedbacks = serializers.IntegerField(read_only=True)
@@ -63,6 +69,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
     certificates = serializers.SerializerMethodField()
     work_days = PostWorkDaysSerializer(many=True, read_only=True)
     amenities = AmenitySerializer(many=True, read_only=True)
+    social_media_links = PostSocialMediaSerializer(source="social_links", many=True, read_only=True)
 
     class Meta:
         model = Post
@@ -71,8 +78,7 @@ class PostBaseSerializer(serializers.ModelSerializer):
             "title",
             "location_title",
             "phone_number",
-            "social_media_link",
-            "social_media_type",
+            "social_media_links",
             "images",
             "certificates",
             "prices",
@@ -151,8 +157,7 @@ class PostDetailSerializer(PostListSerializer):
             "related_posts",
             "description",
             "phone_number",
-            "social_media_link",
-            "social_media_type",
+            "social_media_links",
             "certificates",
             "state",
             "amenities",
@@ -173,6 +178,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
     work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
     prices = serializers.CharField(required=False, allow_null=True, write_only=True)
     amenities = serializers.JSONField(required=False, write_only=True)
+    social_media_links = serializers.JSONField(required=False, write_only=True)
     custom_amenities = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,
@@ -214,6 +220,29 @@ class PostWriteSerializer(serializers.ModelSerializer):
                             parsed_list.append(item)
                     data["amenities"] = parsed_list
 
+            raw_social = data.getlist("social_media_links")
+            if raw_social:
+                if len(raw_social) == 1 and isinstance(raw_social[0], str):
+                    val = raw_social[0].strip()
+                    if not val:
+                        data["social_media_links"] = []
+                    elif val.startswith("[") or val.startswith("{"):
+                        try:
+                            data["social_media_links"] = json.loads(val)
+                        except (json.JSONDecodeError, ValueError):
+                            pass
+                else:
+                    parsed_social = []
+                    for item in raw_social:
+                        if isinstance(item, str) and (item.strip().startswith("{") or item.strip().startswith("[")):
+                            try:
+                                parsed_social.append(json.loads(item))
+                            except Exception:
+                                pass
+                        elif isinstance(item, dict):
+                            parsed_social.append(item)
+                    data["social_media_links"] = parsed_social
+
             raw = data.getlist("amenity_ids")
             if len(raw) == 1 and isinstance(raw[0], str):
                 value = raw[0].strip()
@@ -241,17 +270,26 @@ class PostWriteSerializer(serializers.ModelSerializer):
                         pass
                 elif "," in val:
                     data.setlist("custom_amenities", [i.strip() for i in val.split(",") if i.strip()])
-        elif isinstance(data.get("amenities"), str):
-            val = data["amenities"].strip()
-            if val.startswith("[") or val.startswith("{"):
-                try:
-                    data["amenities"] = json.loads(val)
-                except Exception:
-                    pass
-            elif "," in val:
-                data["amenities"] = [i.strip() for i in val.split(",") if i.strip()]
-            elif val:
-                data["amenities"] = [val]
+        else:
+            if isinstance(data.get("amenities"), str):
+                val = data["amenities"].strip()
+                if val.startswith("[") or val.startswith("{"):
+                    try:
+                        data["amenities"] = json.loads(val)
+                    except Exception:
+                        pass
+                elif "," in val:
+                    data["amenities"] = [i.strip() for i in val.split(",") if i.strip()]
+                elif val:
+                    data["amenities"] = [val]
+
+            if isinstance(data.get("social_media_links"), str):
+                val = data["social_media_links"].strip()
+                if val.startswith("[") or val.startswith("{"):
+                    try:
+                        data["social_media_links"] = json.loads(val)
+                    except Exception:
+                        pass
 
         if isinstance(data.get("custom_amenities"), str):
             val = data["custom_amenities"].strip()
@@ -274,8 +312,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "description",
             "location_title",
             "phone_number",
-            "social_media_link",
-            "social_media_type",
+            "social_media_links",
             "prices",
             "lat",
             "long",
@@ -287,6 +324,34 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "amenity_ids",
             "custom_amenities",
         )
+
+    def validate_social_media_links(self, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            val = value.strip()
+            if not val:
+                return []
+            try:
+                value = json.loads(val)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid JSON for social_media_links.")
+        if not isinstance(value, list):
+            raise serializers.ValidationError("social_media_links must be a list of objects.")
+
+        valid_types = {t[0] for t in PostSocialMedia.SOCIAL_TYPES}
+        cleaned = []
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each social media item must be an object with 'link' and optional 'type'.")
+            link = str(item.get("link", "")).strip()
+            if not link:
+                continue
+            stype = str(item.get("type", "OTHER")).strip().upper()
+            if stype not in valid_types:
+                stype = "OTHER"
+            cleaned.append({"link": link, "type": stype})
+        return cleaned
 
     def validate_amenities(self, value):
         if value is None:

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from modeltranslation.admin import TranslationAdmin
 
-from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate, AppFeedback, Favourite, AdminNotification
+from apps.posts.models import Post, Feedback, Category, PostImage, PostWorkDays, Amenity, PostCertificate, AppFeedback, Favourite, AdminNotification, PostSocialMedia
 
 def make_accepted(modeladmin, request, queryset):
     queryset.update(state='ACCEPTED')
@@ -35,6 +35,10 @@ class WorkHoursInline(admin.TabularInline):
     model = PostWorkDays
     extra = 0
 
+class PostSocialMediaInline(admin.TabularInline):
+    model = PostSocialMedia
+    extra = 1
+
 class PostCertificateInline(admin.TabularInline):
     model = PostCertificate
     extra = 0
@@ -52,9 +56,9 @@ from django.template.loader import render_to_string
 class PostAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'owner', 'phone_number', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
     search_fields = ('title', 'location_title', 'owner__email', 'phone_number')
-    list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category', 'social_media_type')
+    list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category')
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]
-    inlines = [PostImageInline, WorkHoursInline, PostCertificateInline]
+    inlines = [PostImageInline, WorkHoursInline, PostCertificateInline, PostSocialMediaInline]
     filter_horizontal = ('amenities',)
     readonly_fields = ('map_picker',)
     fieldsets = (
@@ -64,8 +68,8 @@ class PostAdmin(admin.ModelAdmin):
         ('Location', {
             'fields': ('location_title', 'map_picker', ('lat', 'long'), 'region', 'district')
         }),
-        ('Contact & Social', {
-            'fields': ('phone_number', 'social_media_link', 'social_media_type')
+        ('Contact', {
+            'fields': ('phone_number',)
         }),
         ('Details', {
             'fields': ('category', 'amenities', 'prices', 'comment_count')
@@ -156,6 +160,13 @@ class PostCertificateAdmin(admin.ModelAdmin):
         return "-"
 
     image_preview.short_description = 'Preview'
+
+
+@admin.register(PostSocialMedia)
+class PostSocialMediaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'post', 'type', 'link')
+    list_filter = ('type',)
+    search_fields = ('post__title', 'link')
 
 
 @admin.register(AppFeedback)

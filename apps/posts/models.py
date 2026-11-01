@@ -105,20 +105,6 @@ class Post(BaseModel):
     description = models.TextField(blank=True, null=True, verbose_name="Post description")
 
     phone_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Phone number")
-    social_media_link = models.URLField(blank=True, null=True, verbose_name="Social media link")
-    social_media_type = models.CharField(
-        max_length=20,
-        choices=(
-            ('TELEGRAM', 'TELEGRAM'),
-            ('INSTAGRAM', 'INSTAGRAM'),
-            ('WHATSAPP', 'WHATSAPP'),
-            ('FACEBOOK', 'FACEBOOK'),
-            ('OTHER', 'OTHER'),
-        ),
-        blank=True,
-        null=True,
-        verbose_name="Social media type"
-    )
 
     state = models.CharField(max_length=50, choices=post_states, default='CHECKING', verbose_name="Post state")
     region = models.ForeignKey("shared.Region", on_delete=models.SET_NULL, related_name='region_posts', blank=True, null=True)
@@ -227,3 +213,28 @@ class PostWorkDays(BaseModel):
         if self.is_closed:
             return f"{self.post.title} - {self.get_day_of_week_display()}: {_('Closed')}"
         return f"{self.post.title} - {self.get_day_of_week_display()}: {self.start_time} - {self.end_time}"
+
+
+class PostSocialMedia(BaseModel):
+    SOCIAL_TYPES = (
+        ('TELEGRAM', 'TELEGRAM'),
+        ('INSTAGRAM', 'INSTAGRAM'),
+        ('WHATSAPP', 'WHATSAPP'),
+        ('FACEBOOK', 'FACEBOOK'),
+        ('TIKTOK', 'TIKTOK'),
+        ('YOUTUBE', 'YOUTUBE'),
+        ('WEBSITE', 'WEBSITE'),
+        ('OTHER', 'OTHER'),
+    )
+
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='social_links')
+    type = models.CharField(max_length=20, choices=SOCIAL_TYPES, default='OTHER', verbose_name="Social media type")
+    link = models.URLField(max_length=500, verbose_name="Social media link")
+
+    class Meta:
+        verbose_name = "Post Social Media"
+        verbose_name_plural = "Post Social Media Links"
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.type}: {self.link}"

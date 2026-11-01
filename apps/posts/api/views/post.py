@@ -139,11 +139,10 @@ class MyPostListView(GenericAPIView):
                 "description": {"type": "string", "description": "Post description"},
                 "location_title": {"type": "string", "description": "Location title"},
                 "phone_number": {"type": "string", "description": "Phone number"},
-                "social_media_link": {"type": "string", "description": "Social media link"},
-                "social_media_type": {
+                "social_media_links": {
                     "type": "string",
-                    "enum": ["TELEGRAM", "INSTAGRAM", "WHATSAPP", "FACEBOOK", "OTHER"],
-                    "description": "Social media type"
+                    "example": '[{"type": "TELEGRAM", "link": "https://t.me/arena"}, {"type": "INSTAGRAM", "link": "https://instagram.com/arena"}]',
+                    "description": "JSON array of social media objects: [{'type': 'TELEGRAM', 'link': '...'}]. Types: TELEGRAM, INSTAGRAM, WHATSAPP, FACEBOOK, TIKTOK, YOUTUBE, WEBSITE, OTHER."
                 },
                 "amenities": {
                     "type": "string",
@@ -258,11 +257,10 @@ class PostDetailView(GenericAPIView):
                 "description": {"type": "string", "description": "Post description"},
                 "location_title": {"type": "string", "description": "Location title"},
                 "phone_number": {"type": "string", "description": "Phone number"},
-                "social_media_link": {"type": "string", "description": "Social media link"},
-                "social_media_type": {
+                "social_media_links": {
                     "type": "string",
-                    "enum": ["TELEGRAM", "INSTAGRAM", "WHATSAPP", "FACEBOOK", "OTHER"],
-                    "description": "Social media type"
+                    "example": '[{"type": "TELEGRAM", "link": "https://t.me/arena"}, {"type": "INSTAGRAM", "link": "https://instagram.com/arena"}]',
+                    "description": "JSON array of social media objects: [{'type': 'TELEGRAM', 'link': '...'}]. Types: TELEGRAM, INSTAGRAM, WHATSAPP, FACEBOOK, TIKTOK, YOUTUBE, WEBSITE, OTHER."
                 },
                 "amenities": {
                     "type": "string",

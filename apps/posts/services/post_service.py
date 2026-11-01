@@ -2,7 +2,7 @@ import math
 
 from django.db.models import Avg, Q, QuerySet
 from apps.users.models import User
-from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays, PostCertificate
+from apps.posts.models import Amenity, Category, Feedback, Post, PostImage, PostWorkDays, PostCertificate, PostSocialMedia
 
 
 class PostService:
@@ -57,7 +57,7 @@ class PostService:
         queryset = (
             Post.objects.filter(state="ACCEPTED")
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities")
+            .prefetch_related("work_days", "amenities", "social_links")
             .filter(id=post_id)
         )
         if not include_hidden:
@@ -71,7 +71,7 @@ class PostService:
         queryset = (
             Post.objects.filter(owner=user)
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities")
+            .prefetch_related("work_days", "amenities", "social_links")
             .filter(id=post_id)
         )
         if not include_hidden:
@@ -81,7 +81,7 @@ class PostService:
     def list_my_posts(self, user, include_hidden: bool = False):
         queryset = (
             Post.objects.select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities")
+            .prefetch_related("work_days", "amenities", "social_links")
             .filter(owner=user)
             .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
             .order_by("-created_at")
@@ -94,7 +94,7 @@ class PostService:
         queryset = (
             Post.objects.filter(state="ACCEPTED", is_hidden=False)
             .select_related("owner", "region", "district", "category")
-            .prefetch_related("work_days", "amenities")
+            .prefetch_related("work_days", "amenities", "social_links")
             .annotate(avg_rating_value=Avg("post_feedbacks__rating"))
         )
 
@@ -243,6 +243,7 @@ class PostService:
         amenities_data = validated_data.pop("amenities", None) or []
         amenity_ids = validated_data.pop("amenity_ids", None)
         custom_amenities = validated_data.pop("custom_amenities", None)
+        social_links_data = validated_data.pop("social_media_links", None)
 
         post = Post.objects.create(owner=owner, **validated_data)
         if work_hours:
@@ -256,7 +257,27 @@ class PostService:
         if amenities_data:
             resolved = self._process_amenities(amenities_data, post=post)
             post.amenities.set(resolved)
+
+        if social_links_data:
+            self._create_social_links(post, social_links_data)
+
         return post
+
+    def _create_social_links(self, post: Post, links: list) -> None:
+        entries = []
+        for item in links:
+            if not isinstance(item, dict):
+                continue
+            link = str(item.get("link", "")).strip()
+            if not link:
+                continue
+            stype = str(item.get("type", "OTHER")).strip().upper()
+            valid_types = {t[0] for t in PostSocialMedia.SOCIAL_TYPES}
+            if stype not in valid_types:
+                stype = "OTHER"
+            entries.append(PostSocialMedia(post=post, type=stype, link=link))
+        if entries:
+            PostSocialMedia.objects.bulk_create(entries)
 
     def _create_work_days(self, post: Post, work_hours: list) -> None:
         entries = []
@@ -315,6 +336,8 @@ class PostService:
         amenities_data = validated_data.pop("amenities", None)
         amenity_ids = validated_data.pop("amenity_ids", None)
         custom_amenities = validated_data.pop("custom_amenities", None)
+        has_social_links = "social_media_links" in validated_data
+        social_links_data = validated_data.pop("social_media_links", None)
 
         for attr, value in validated_data.items():
             setattr(post, attr, value)
@@ -335,6 +358,11 @@ class PostService:
 
             resolved = self._process_amenities(merged, post=post)
             post.amenities.set(resolved)
+
+        if has_social_links:
+            post.social_links.all().delete()
+            if social_links_data:
+                self._create_social_links(post, social_links_data)
 
         return post
 

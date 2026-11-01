@@ -54,6 +54,7 @@ LIBS = [
     'rest_framework',
     'django_filters',
     'drf_spectacular',
+    "corsheaders",
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
 ]
@@ -61,6 +62,7 @@ LIBS = [
 INSTALLED_APPS = BASE_APPS + APPS + LIBS
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -128,6 +130,12 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:60180",
+#     "http://127.0.0.1:60180",
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

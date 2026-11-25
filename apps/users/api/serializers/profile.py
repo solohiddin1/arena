@@ -8,7 +8,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id",
-            "email",
             "phone_number",
             "full_name",
             "image",
@@ -16,7 +15,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_active",
             "is_verified",
         )
-        read_only_fields = ("id", "email")
+        read_only_fields = ("id", "phone_number")
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():

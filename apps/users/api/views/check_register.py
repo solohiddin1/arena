@@ -8,7 +8,7 @@ from apps.users.repository import get_user_by_username
 
 @extend_schema(
     tags=["auth"],
-    summary="check if user already exists by email",
+    summary="check if user already exists by phone number",
 )
 class CheckRegister(GenericAPIView):
     serializer_class = CheckRegisterSerializer
@@ -16,5 +16,6 @@ class CheckRegister(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = get_user_by_username(serializer.validated_data["email"])
+        phone_number = serializer.validated_data.get("phone_number") or serializer.validated_data.get("username")
+        user = get_user_by_username(phone_number)
         return SuccessResponse({"exists": bool(user)})

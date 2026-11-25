@@ -2,6 +2,7 @@ from .feedback import PostFeedbackListView, PostFeedbackUpsertView
 from .post import (
     AmenityListView,
     CategoryListView,
+    ImportGoogleMapsPlaceView,
     MyPostListView,
     PostCreateView,
     PostDeleteView,
@@ -16,6 +17,7 @@ from .comment import CommentListView, CommentCreateView
 __all__ = [
     "AmenityListView",
     "CategoryListView",
+    "ImportGoogleMapsPlaceView",
     "MyPostListView",
     "PostCreateView",
     "PostDeleteView",

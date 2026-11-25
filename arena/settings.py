@@ -253,10 +253,6 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
-GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
-GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
-GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', '')
-GOOGLE_ALLOWED_AUDIENCES = [a.strip() for a in os.getenv('GOOGLE_ALLOWED_AUDIENCES', '').split(',') if a.strip()]
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 PHOTO_PATH = os.getenv('PHOTO_PATH', str(MEDIA_ROOT / 'user' / 'images'))

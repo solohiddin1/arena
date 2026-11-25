@@ -17,8 +17,9 @@ class ApplyNewPassword(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        phone_number = serializer.validated_data.get("phone_number") or serializer.validated_data.get("username")
         result = user_service.apply_new_password(
-            email=serializer.validated_data["email"],
+            phone_number=phone_number,
             code=serializer.validated_data["code"],
             password=serializer.validated_data["password"],
         )

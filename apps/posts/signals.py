@@ -7,7 +7,7 @@ from apps.posts.models import AppFeedback, AdminNotification
 @receiver(post_save, sender=AppFeedback)
 def create_admin_notification_on_feedback(sender, instance, created, **kwargs):
     if created:
-        user_info = instance.user.email if instance.user else "Anonymous"
+        user_info = str(instance.user) if instance.user else "Anonymous"
         rating_info = f"{instance.rating}/5" if instance.rating else "no rating"
         AdminNotification.objects.create(
             type='APP_FEEDBACK',

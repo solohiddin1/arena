@@ -5,7 +5,7 @@ from apps.posts.models import Feedback
 
 class FeedbackReadSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
-    user_email = serializers.CharField(source="user.email", read_only=True)
+    user_phone_number = serializers.CharField(source="user.phone_number", read_only=True)
     user_full_name = serializers.CharField(source="user.full_name", read_only=True)
 
     class Meta:
@@ -14,7 +14,7 @@ class FeedbackReadSerializer(serializers.ModelSerializer):
             "id",
             "post",
             "user_id",
-            "user_email",
+            "user_phone_number",
             "user_full_name",
             "rating",
             "comment",

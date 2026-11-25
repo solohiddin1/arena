@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -69,6 +69,7 @@ dependencies = [
     { name = "exceptiongroup" },
     { name = "firebase-admin" },
     { name = "google-auth" },
+    { name = "google-maps-place-parser" },
     { name = "gunicorn" },
     { name = "idna" },
     { name = "inflection" },
@@ -131,6 +132,7 @@ requires-dist = [
     { name = "exceptiongroup", specifier = "==1.3.1" },
     { name = "firebase-admin", specifier = ">=7.7.0" },
     { name = "google-auth", specifier = "==2.40.3" },
+    { name = "google-maps-place-parser", specifier = ">=1.0.0" },
     { name = "gunicorn", specifier = "==23.0.0" },
     { name = "idna", specifier = "==3.11" },
     { name = "inflection", specifier = "==0.5.1" },
@@ -755,6 +757,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/f8/7e33845d6b90ce1cf37cfabf25cb859277c7d3533ef1b6b1e1ca58581549/google_crc32c-1.9.0-cp315-cp315-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f97c3806dcea41c29c04965347b0e12481561b75e0045dc7a4f69d75dec5d9b1", size = 38359, upload-time = "2026-09-24T21:38:14.983Z" },
     { url = "https://files.pythonhosted.org/packages/36/ff/556b2423f449a7515af6b8222a4d7833cbe09ff3e8d2f0b80471f5f6d02e/google_crc32c-1.9.0-cp315-cp315-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0abe7e202c25909869c35672ab0f2fe748a7acf276eb78577332a7c38999740f", size = 36858, upload-time = "2026-09-24T21:38:15.799Z" },
     { url = "https://files.pythonhosted.org/packages/40/71/4733f1b7c921d04a2bb9b9916cf66498bf7ad0860a06289413830da83192/google_crc32c-1.9.0-cp315-cp315-win_amd64.whl", hash = "sha256:5695c8b9327e040b2aba12c6659b0acb5995314ef0af0192da66e662e011103b", size = 35534, upload-time = "2026-09-24T21:39:31.337Z" },
+]
+
+[[package]]
+name = "google-maps-place-parser"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2d/72/1e20320175330bcd033208627a81918e96864a7b10eceb0af8be8145fd7c/google_maps_place_parser-1.0.0.tar.gz", hash = "sha256:0ef193158e8c2416bbe03b611e89aa693f04b215e1aa8bd7dfc9eb6fb0a35e9f", size = 2038, upload-time = "2026-06-25T17:23:51.622Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/a6/771d3db03c52493b60f3c5e5d793d619e7db7bd2d39fc12324900c0027a2/google_maps_place_parser-1.0.0-py3-none-any.whl", hash = "sha256:a6c2269d2a6e466b41c81a28f647b2a33bc8fd2007fa8c21d8d9d633f1637dd1", size = 2529, upload-time = "2026-06-25T17:23:50.348Z" },
 ]
 
 [[package]]

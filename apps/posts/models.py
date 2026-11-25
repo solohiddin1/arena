@@ -33,7 +33,8 @@ class AppFeedback(BaseModel):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.email if self.user else 'Anonymous'} - {self.rating or 'No rating'}"
+        user_name = str(self.user) if self.user else 'Anonymous'
+        return f"{user_name} - {self.rating or 'No rating'}"
 
 
 class Favourite(BaseModel):
@@ -47,7 +48,7 @@ class Favourite(BaseModel):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.email} - {self.post.title}"
+        return f"{self.user} - {self.post.title}"
 
 
 class Feedback(BaseModel):
@@ -66,7 +67,7 @@ class Feedback(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.user.email} - {self.post.title}"
+        return f"{self.user} - {self.post.title}"
 
 class Amenity(BaseModel):
     title = models.CharField(max_length=100, verbose_name=_("title"), blank=True, null=True)

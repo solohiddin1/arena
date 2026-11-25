@@ -20,18 +20,18 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
     )
     username = models.CharField(blank=True, max_length=255, verbose_name=_('username'), null=True)
     full_name = models.CharField(max_length=255, null=True, blank=True, verbose_name=_('full_name'))
-    email = models.EmailField(unique=True, null=True, blank=True, default=None)
-    phone_number = models.CharField(max_length=12, blank=True, null=True, validators=[phone_regex], verbose_name=_('phone_number'))
+    phone_number = models.CharField(max_length=20, blank=True, null=True, unique=True, validators=[phone_regex], verbose_name=_('phone_number'))
     telegram_id = models.CharField(max_length=50, blank=True, null=True, unique=True, verbose_name=_('telegram_id'))
     telegram_username = models.CharField(max_length=100, blank=True, null=True, verbose_name=_('telegram_username'))
     image = models.ImageField(upload_to='user/images', blank=True, null=True, verbose_name=_('image'), default='user/user_default.jpeg')
     age = models.IntegerField(blank=True, null=True, verbose_name=_('age'))
     password = models.CharField(max_length=255, null=True, verbose_name=_('password'))
-    is_active = models.BooleanField(default=False, verbose_name=_('is_active'))
+    is_active = models.BooleanField(default=True, verbose_name=_('is_active'))
     is_verified = models.BooleanField(default=False, verbose_name=_('is_verified'))
-    otp = models.CharField(max_length=4, null=True, verbose_name=_("otp"))
-    otp_created_at = models.DateTimeField(null=True, verbose_name=_('otp_created_at'))
+    otp = models.CharField(max_length=4, null=True, blank=True, verbose_name=_("otp"))
+    otp_created_at = models.DateTimeField(null=True, blank=True, verbose_name=_('otp_created_at'))
 
+    email = None
     first_name = None
     last_name = None
     groups = None
@@ -39,11 +39,24 @@ class User(AbstractUser, BaseModel, PermissionsMixin):
 
     objects = MyUserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = []
 
+    def save(self, *args, **kwargs):
+        if self.phone_number:
+            clean = str(self.phone_number).strip().replace("+", "").replace(" ", "").replace("-", "")
+            self.phone_number = clean
+            if not self.username:
+                self.username = clean
+        elif self.username:
+            clean = str(self.username).strip().replace("+", "").replace(" ", "").replace("-", "")
+            self.username = clean
+            if not self.phone_number:
+                self.phone_number = clean
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.email or self.phone_number or self.username or f"{self.id}"
+        return self.phone_number or self.username or self.full_name or f"User #{self.id}"
 
 
 class UserAuthOtp(BaseModel):

@@ -17,7 +17,8 @@ class OtpForgotPassword(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        result = user_service.request_forgot_password_otp(serializer.validated_data["email"])
+        phone_number = serializer.validated_data.get("phone_number") or serializer.validated_data.get("username")
+        result = user_service.request_forgot_password_otp(phone_number)
         if result.get("error"):
             return ErrorResponse(result["error"])
         return SuccessResponse(result["data"])

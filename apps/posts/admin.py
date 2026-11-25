@@ -55,7 +55,7 @@ from django.template.loader import render_to_string
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'owner', 'phone_number', 'state', 'is_hidden', 'average_rating', 'total_feedbacks', 'comment_count')
-    search_fields = ('title', 'location_title', 'owner__email', 'phone_number')
+    search_fields = ('title', 'location_title', 'owner__phone_number', 'owner__username', 'phone_number')
     list_filter = ('owner', 'state', 'is_hidden', 'region', 'district', 'category')
     actions = [make_accepted, make_cancelled, make_frozen, make_checking]
     inlines = [PostImageInline, WorkHoursInline, PostCertificateInline, PostSocialMediaInline]
@@ -91,7 +91,7 @@ class PostAdmin(admin.ModelAdmin):
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
     list_display = ('user', 'post', 'rating', 'comment')
-    search_fields = ('comment', 'user__email', 'post__title')
+    search_fields = ('comment', 'user__phone_number', 'user__username', 'post__title')
     list_filter = ('user', 'post')
 
 class CustomAdmin(TranslationAdmin):
@@ -172,7 +172,7 @@ class PostSocialMediaAdmin(admin.ModelAdmin):
 @admin.register(AppFeedback)
 class AppFeedbackAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'rating', 'short_message', 'created_at')
-    search_fields = ('user__email', 'message')
+    search_fields = ('user__phone_number', 'user__username', 'message')
     list_filter = ('rating',)
     readonly_fields = ('user', 'message', 'rating', 'created_at')
 
@@ -184,7 +184,7 @@ class AppFeedbackAdmin(admin.ModelAdmin):
 @admin.register(Favourite)
 class FavouriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'post', 'created_at')
-    search_fields = ('user__email', 'post__title')
+    search_fields = ('user__phone_number', 'user__username', 'post__title')
     list_filter = ('created_at',)
 
 

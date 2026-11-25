@@ -54,47 +54,38 @@ def send_otp_email(email, otp_code):
 
 
 
-def get_user_by_username(email):
+def get_user_by_username(phone_number):
     try:
-        return User.objects.filter(email=email).first()
+        if not phone_number:
+            return None
+        cleaned = str(phone_number).strip().replace("+", "").replace(" ", "").replace("-", "")
+        return User.objects.filter(models.Q(phone_number=cleaned) | models.Q(username=cleaned)).first()
     except Exception as e:
         logger.exception(e)
         raise e
 
 
-def create_user(email, full_name, phone_number,
-                otp, otp_created_at,password):
+def create_user(phone_number, full_name,
+                otp, otp_created_at, password):
     try:
-        # Ensure `username` (which is unique on the AbstractUser) is set
-        # When USERNAME_FIELD is changed to `email` but the `username` column still
-        # exists and is unique, creating a user without a username will cause
-        # a UNIQUE constraint error (multiple users with empty username '').
-        logger.info(f"User is registering with email: {email}, full_name: {full_name}, and password: {password}") 
+        cleaned = str(phone_number).strip().replace("+", "").replace(" ", "").replace("-", "")
+        logger.info(f"User is registering with phone_number: {cleaned}, full_name: {full_name}") 
         user = User.objects.create(
-            email=email,
-            username=email,
+            username=cleaned,
+            phone_number=cleaned,
             full_name=full_name,
-            phone_number=phone_number,
             otp=otp,
             otp_created_at=otp_created_at,
             is_active=True,
         )
         user.set_password(password)
         user.save()
-        logger.info(f"User is registered successfully with email: {email}, with phone_number:{phone_number}")
-        # send_telegram_message(f"User registered with email: {email}, phone_number: {phone_number}, with password: {password}")
+        logger.info(f"User is registered successfully with phone_number: {cleaned}")
         return user
     except IntegrityError as e:
-        if "phone_number" in str(e):
+        if "phone_number" in str(e) or "username" in str(e):
             logger.exception(e)
-            logger.exception(f"User tried to register with email: {email}, full_name: {full_name}, and password: {password}, but failed with integrity error in phone number")
             return ErrorResponse(enum.ResultCodes.USER_WITH_THIS_PHONE_NUMBER_ALREADY_EXISTS)
-        if "email" in str(e):
-            logger.exception(e)
-            logger.exception(f"User tried to register with email: {email}, full_name: {full_name}, and password: {password}, but failed with integrity error in email")
-            return ErrorResponse(enum.ResultCodes.USER_ALREADY_REGISTERED)
-        
-        # fallback if those errors cant catch
         raise e
     except Exception as e:
         logger.exception(e)
@@ -202,14 +193,14 @@ def get_user_by_userid(id):
         raise e
 
 
-def create_user_simple(username, full_name, phone=None, email=None):
+def create_user_simple(username, full_name, phone=None):
     """Create a simple user without password (for OAuth/Click integration)"""
     try:
+        uname = phone or username
         user = User.objects.create(
-            username=username,
+            username=uname,
             full_name=full_name,
-            phone=phone,
-            email=email
+            phone_number=phone or uname,
         )
         return user
     except Exception as e:

@@ -8,7 +8,7 @@ class UserRepo:
         if not username:
             return None
         return User.objects.filter(
-            Q(username=username) | Q(phone_number=username) | Q(email=username)
+            Q(username=username) | Q(phone_number=username)
         ).first()
 
     @staticmethod
@@ -22,11 +22,7 @@ class UserRepo:
         user.telegram_id = str(telegram_id)
         if telegram_username:
             user.telegram_username = telegram_username
-        if user.email and user.email.endswith("@telegram.user"):
-            user.email = None
-            user.save(update_fields=["telegram_id", "telegram_username", "email"])
-        else:
-            user.save(update_fields=["telegram_id", "telegram_username"])
+        user.save(update_fields=["telegram_id", "telegram_username"])
         return user
 
     @classmethod
@@ -44,7 +40,6 @@ class UserRepo:
             uname = phone or username
             user = User.objects.create(
                 username=uname,
-                email=None,
                 phone_number=phone or (uname if uname and uname.startswith("998") else None),
                 full_name=full_name,
                 is_active=True,
@@ -52,10 +47,6 @@ class UserRepo:
             )
             user.set_unusable_password()
             user.save()
-        else:
-            if user.email and user.email.endswith("@telegram.user"):
-                user.email = None
-                user.save(update_fields=["email"])
         return user
 
     @staticmethod

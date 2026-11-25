@@ -49,7 +49,7 @@ class MarketingNotificationAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "title", "notification_type", "is_read", "created_at")
     list_filter = ("notification_type", "is_read")
-    search_fields = ("title", "user__email", "user__phone_number")
+    search_fields = ("title", "user__phone_number", "user__username")
 
     def has_add_permission(self, request):
         return False

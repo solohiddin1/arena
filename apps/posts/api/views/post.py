@@ -1,8 +1,10 @@
+import json
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -15,12 +17,13 @@ from apps.posts.api.serializers.post import (
     PostWriteSerializer,
 )
 from apps.posts.models import Favourite
-from apps.posts.services import PostService
+from apps.posts.services import PostService, GoogleMapsParserService
 from apps.shared.pagination import CustomPageNumberPagination
 from apps.shared.utils import SuccessResponse
 from apps.users.permissions import ClientPermission
 
 post_service = PostService()
+google_maps_parser = GoogleMapsParserService()
 
 
 POST_LIST_PARAMETERS = [
@@ -191,7 +194,7 @@ class MyPostListView(GenericAPIView):
 class PostCreateView(GenericAPIView):
     permission_classes = [ClientPermission]
     serializer_class = PostWriteSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -317,7 +320,7 @@ class PostDetailView(GenericAPIView):
 class PostUpdateView(GenericAPIView):
     permission_classes = [ClientPermission]
     serializer_class = PostWriteSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def patch(self, request, post_id, *args, **kwargs):
         post = post_service.get_my_post(post_id, request.user)
@@ -327,8 +330,25 @@ class PostUpdateView(GenericAPIView):
         if post.owner_id != request.user.id:
             return SuccessResponse({"detail": "You can update only your own post."})
 
-        remove_image_ids = [int(i) for i in request.data.getlist("remove_image_ids") if str(i).isdigit()]
-        remove_cert_ids = [int(i) for i in request.data.getlist("remove_certificate_ids") if str(i).isdigit()]
+        def _get_raw_ids(key):
+            if hasattr(request.data, "getlist"):
+                raw = request.data.getlist(key)
+            else:
+                val = request.data.get(key, [])
+                raw = val if isinstance(val, (list, tuple)) else [val]
+            result = []
+            for item in raw:
+                if isinstance(item, str) and item.strip().startswith("["):
+                    try:
+                        result.extend(json.loads(item))
+                    except Exception:
+                        result.append(item)
+                else:
+                    result.append(item)
+            return [int(i) for i in result if str(i).isdigit()]
+
+        remove_image_ids = _get_raw_ids("remove_image_ids")
+        remove_cert_ids = _get_raw_ids("remove_certificate_ids")
 
         invalid_images = post_service.remove_post_images(post, remove_image_ids)
         if invalid_images:
@@ -343,7 +363,7 @@ class PostUpdateView(GenericAPIView):
         post = post_service.update_post(post, serializer.validated_data)
         post_service.create_post_images(post, request.FILES.getlist("images"))
         post_service.create_post_certificates(post, request.FILES.getlist("certificates"))
-        return SuccessResponse(PostListSerializer(post, context={"request": request}).data)
+        return SuccessResponse(PostDetailSerializer(post, context={"request": request}).data)
 
 
 @extend_schema(tags=["post"], summary="Delete post")
@@ -430,3 +450,64 @@ class CategoryListView(GenericAPIView):
         categories = post_service.list_categories()
         serializer = self.get_serializer(categories, many=True, context={"request": request})
         return SuccessResponse(serializer.data)
+
+
+@extend_schema(
+    tags=["post"],
+    summary="Import place from Google Maps",
+    description="Parse a Google Maps URL or search query, and save places to the Post model with matching category and address.",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "Google Maps URL (e.g. https://maps.app.goo.gl/...)"},
+                "query": {"type": "string", "description": "Search query if no URL provided (e.g. 'Football field Tashkent')"},
+                "category": {"type": "integer", "description": "Category ID (optional, auto-detected if omitted)"},
+                "city": {"type": "string", "description": "City for search (default: 'Tashkent')"},
+                "limit": {"type": "integer", "description": "Max places to import when query is provided (default: 5)"},
+            },
+        }
+    },
+    responses={200: PostDetailSerializer(many=True)},
+)
+class ImportGoogleMapsPlaceView(GenericAPIView):
+    permission_classes = [ClientPermission]
+
+    def post(self, request, *args, **kwargs):
+        url = request.data.get("url")
+        query = request.data.get("query")
+        category_id = request.data.get("category") or request.data.get("category_id")
+        if category_id is not None:
+            try:
+                category_id = int(category_id)
+            except (ValueError, TypeError):
+                category_id = None
+
+        city = request.data.get("city") or "Tashkent"
+        limit = int(request.data.get("limit") or 5)
+
+        if not url and not query:
+            return Response(
+                {"detail": "Either 'url' or 'query' must be provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        imported_posts = []
+
+        if url:
+            place_data = google_maps_parser.parse_google_maps_url(url, category_id=category_id)
+            post = google_maps_parser.save_place_to_post(place_data, owner=request.user)
+            imported_posts.append(post)
+        elif query:
+            places = google_maps_parser.search_places(query=query, limit=limit, city=city, category_id=category_id)
+            for item in places:
+                try:
+                    post = google_maps_parser.save_place_to_post(item, owner=request.user)
+                    imported_posts.append(post)
+                except Exception as e:
+                    pass
+
+        context = {"request": request}
+        data = PostDetailSerializer(imported_posts, many=True, context=context).data
+        return SuccessResponse(data)
+

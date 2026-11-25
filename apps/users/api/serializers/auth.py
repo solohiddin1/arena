@@ -39,48 +39,57 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
 
 
 class AuthenticationSerializer(serializers.Serializer):
-    email = serializers.CharField(max_length=255, required=True)
+    phone_number = serializers.CharField(max_length=255, required=False)
+    username = serializers.CharField(max_length=255, required=False)
     password = serializers.CharField(max_length=255, required=True)
+
+    def validate(self, attrs):
+        raw_phone = attrs.get("phone_number") or attrs.get("username")
+        if not raw_phone:
+            raise serializers.ValidationError({"phone_number": "Phone number is required."})
+
+        cleaned = str(raw_phone).strip().replace("+", "").replace(" ", "").replace("-", "")
+        attrs["phone_number"] = cleaned
+        attrs["username"] = cleaned
+        return attrs
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    email = serializers.CharField(required=True, max_length=150, min_length=5)
+    phone_number = serializers.CharField(required=True, max_length=20)
     password = serializers.CharField(required=True, max_length=150, min_length=5)
-    full_name = serializers.CharField(required=False, max_length=150, min_length=1)
-    phone_number = serializers.CharField(required=False, max_length=12, min_length=12)
+    full_name = serializers.CharField(required=False, max_length=150, allow_blank=True)
 
     class Meta:
         model = User
         fields = (
-            "email",
+            "phone_number",
             "password",
             "full_name",
-            "phone_number",
         )
         extra_kwargs = {"password": {"write_only": True}}
 
     def validate_phone_number(self, value):
+        cleaned = str(value).strip().replace("+", "").replace(" ", "").replace("-", "")
         phone_regex = r"^998\d{9}$"
-        if re.match(phone_regex, value):
-            return value
+        if re.match(phone_regex, cleaned):
+            return cleaned
         raise serializers.ValidationError(
-            "Phone number must be in the format: '998901234567'."
-        )
-
-    def validate_email(self, value):
-        email_regex = r"^[\w\.-]+@[\w\.-]+\.\w+$"
-        phone_regex = r"^998\d{9}$"
-
-        if re.match(email_regex, value) or re.match(phone_regex, value):
-            return value
-
-        raise serializers.ValidationError(
-            "Username must be a valid email or Uzbek phone number (e.g. 998901234567)."
+            "Phone number must be in the format: '998901234567' or '+998901234567'."
         )
 
 
 class CheckRegisterSerializer(serializers.Serializer):
-    email = serializers.CharField(required=True, max_length=150)
+    phone_number = serializers.CharField(required=False, max_length=150)
+    username = serializers.CharField(required=False, max_length=150)
+
+    def validate(self, attrs):
+        raw_phone = attrs.get("phone_number") or attrs.get("username")
+        if not raw_phone:
+            raise serializers.ValidationError({"phone_number": "Phone number is required."})
+        cleaned = str(raw_phone).strip().replace("+", "").replace(" ", "").replace("-", "")
+        attrs["phone_number"] = cleaned
+        attrs["username"] = cleaned
+        return attrs
 
 
 class UserVerifySerializer(serializers.Serializer):
@@ -89,10 +98,14 @@ class UserVerifySerializer(serializers.Serializer):
 
 
 class AuthOtpSendSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True, max_length=150)
-    role = serializers.CharField(required=True, max_length=30)
+    phone_number = serializers.CharField(required=True, max_length=20)
+    role = serializers.CharField(required=False, max_length=30)
+
+    def validate_phone_number(self, value):
+        return str(value).strip().replace("+", "").replace(" ", "").replace("-", "")
 
 
 class AuthOtpVerifySerializer(serializers.Serializer):
     id = serializers.IntegerField(required=True)
     code = serializers.IntegerField(required=True)
+

@@ -10,7 +10,7 @@ user_service = UserService()
 
 @extend_schema(
     tags=["auth"],
-    summary="login verified user with email and password and return tokens",
+    summary="login verified user with phone_number and password and return tokens",
     responses={200: AuthenticationSerializer},
 )
 class LoginUser(GenericAPIView):
@@ -19,9 +19,10 @@ class LoginUser(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        phone_number = serializer.validated_data.get("phone_number") or serializer.validated_data.get("username")
         result = user_service.login_user(
             request=request,
-            email=serializer.validated_data.get("email"),
+            phone_number=phone_number,
             password=serializer.validated_data.get("password"),
         )
         if result.get("error"):

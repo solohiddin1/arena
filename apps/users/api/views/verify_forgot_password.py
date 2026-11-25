@@ -17,8 +17,9 @@ class VerifyForgotPassword(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        phone_number = serializer.validated_data.get("phone_number") or serializer.validated_data.get("username")
         result = user_service.verify_forgot_password(
-            email=serializer.validated_data["email"],
+            phone_number=phone_number,
             code=serializer.validated_data["code"],
         )
         if result.get("error"):

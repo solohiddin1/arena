@@ -175,8 +175,8 @@ class PostDetailSerializer(PostListSerializer):
 
 
 class PostWriteSerializer(serializers.ModelSerializer):
-    work_hours = serializers.CharField(required=False, allow_null=True, write_only=True)
-    prices = serializers.CharField(required=False, allow_null=True, write_only=True)
+    work_hours = serializers.JSONField(required=False, allow_null=True, write_only=True)
+    prices = serializers.JSONField(required=False, allow_null=True, write_only=True)
     amenities = serializers.JSONField(required=False, write_only=True)
     social_media_links = serializers.JSONField(required=False, write_only=True)
     custom_amenities = serializers.ListField(
@@ -191,117 +191,92 @@ class PostWriteSerializer(serializers.ModelSerializer):
     )
 
     def to_internal_value(self, data):
-        data = data.copy() if hasattr(data, "copy") else dict(data)
+        # Convert QueryDict to plain dict so JSONField does not treat Python objects as HTML form inputs
         if hasattr(data, "getlist"):
-            raw_amenities = data.getlist("amenities")
-            if raw_amenities:
-                if len(raw_amenities) == 1 and isinstance(raw_amenities[0], str):
-                    val = raw_amenities[0].strip()
-                    if not val:
-                        data["amenities"] = []
-                    elif val.startswith("[") or val.startswith("{"):
-                        try:
-                            data["amenities"] = json.loads(val)
-                        except (json.JSONDecodeError, ValueError):
-                            data["amenities"] = [val]
-                    elif "," in val:
-                        data["amenities"] = [i.strip() for i in val.split(",") if i.strip()]
-                    else:
-                        data["amenities"] = [val]
+            plain = {}
+            for key in data.keys():
+                if key in ("amenity_ids", "custom_amenities"):
+                    plain[key] = data.getlist(key)
                 else:
-                    parsed_list = []
-                    for item in raw_amenities:
-                        if isinstance(item, str) and (item.strip().startswith("{") or item.strip().startswith("[")):
-                            try:
-                                parsed_list.append(json.loads(item))
-                            except Exception:
-                                parsed_list.append(item)
-                        else:
-                            parsed_list.append(item)
-                    data["amenities"] = parsed_list
-
-            raw_social = data.getlist("social_media_links")
-            if raw_social:
-                if len(raw_social) == 1 and isinstance(raw_social[0], str):
-                    val = raw_social[0].strip()
-                    if not val:
-                        data["social_media_links"] = []
-                    elif val.startswith("[") or val.startswith("{"):
-                        try:
-                            data["social_media_links"] = json.loads(val)
-                        except (json.JSONDecodeError, ValueError):
-                            pass
-                else:
-                    parsed_social = []
-                    for item in raw_social:
-                        if isinstance(item, str) and (item.strip().startswith("{") or item.strip().startswith("[")):
-                            try:
-                                parsed_social.append(json.loads(item))
-                            except Exception:
-                                pass
-                        elif isinstance(item, dict):
-                            parsed_social.append(item)
-                    data["social_media_links"] = parsed_social
-
-            raw = data.getlist("amenity_ids")
-            if len(raw) == 1 and isinstance(raw[0], str):
-                value = raw[0].strip()
-                if not value:
-                    data.setlist("amenity_ids", [])
-                elif value.startswith("["):
-                    try:
-                        parsed = json.loads(value)
-                        data.setlist("amenity_ids", [int(i) for i in parsed])
-                    except (json.JSONDecodeError, ValueError):
-                        pass
-                elif "," in value:
-                    data.setlist("amenity_ids", [int(i.strip()) for i in value.split(",") if i.strip().isdigit()])
-
-            raw_custom = data.getlist("custom_amenities")
-            if len(raw_custom) == 1 and isinstance(raw_custom[0], str):
-                val = raw_custom[0].strip()
-                if not val:
-                    data.setlist("custom_amenities", [])
-                elif val.startswith("["):
-                    try:
-                        parsed = json.loads(val)
-                        data.setlist("custom_amenities", [str(i) for i in parsed])
-                    except (json.JSONDecodeError, ValueError):
-                        pass
-                elif "," in val:
-                    data.setlist("custom_amenities", [i.strip() for i in val.split(",") if i.strip()])
+                    plain[key] = data.get(key)
+            data = plain
         else:
-            if isinstance(data.get("amenities"), str):
-                val = data["amenities"].strip()
-                if val.startswith("[") or val.startswith("{"):
-                    try:
-                        data["amenities"] = json.loads(val)
-                    except Exception:
-                        pass
-                elif "," in val:
-                    data["amenities"] = [i.strip() for i in val.split(",") if i.strip()]
-                elif val:
-                    data["amenities"] = [val]
+            data = data.copy() if hasattr(data, "copy") else dict(data)
 
-            if isinstance(data.get("social_media_links"), str):
-                val = data["social_media_links"].strip()
-                if val.startswith("[") or val.startswith("{"):
+        # Parse JSON string values if any of the JSON fields were passed as strings (e.g. from multipart form)
+        for field in ("amenities", "social_media_links", "prices", "work_hours"):
+            val = data.get(field)
+            if isinstance(val, str):
+                sval = val.strip()
+                if not sval:
+                    data[field] = []
+                elif sval.startswith("[") or sval.startswith("{"):
                     try:
-                        data["social_media_links"] = json.loads(val)
-                    except Exception:
+                        data[field] = json.loads(sval)
+                    except (json.JSONDecodeError, ValueError):
                         pass
 
-        if isinstance(data.get("custom_amenities"), str):
-            val = data["custom_amenities"].strip()
-            if val.startswith("["):
+        # Handle amenity_ids if passed as a string or list of strings
+        raw_ids = data.get("amenity_ids")
+        if isinstance(raw_ids, str):
+            val = raw_ids.strip()
+            if not val:
+                data["amenity_ids"] = []
+            elif val.startswith("["):
                 try:
-                    data["custom_amenities"] = json.loads(val)
-                except Exception:
+                    data["amenity_ids"] = [int(i) for i in json.loads(val)]
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            elif "," in val:
+                data["amenity_ids"] = [int(i.strip()) for i in val.split(",") if i.strip().isdigit()]
+        elif isinstance(raw_ids, list):
+            parsed_ids = []
+            for item in raw_ids:
+                if isinstance(item, str):
+                    val = item.strip()
+                    if val.startswith("["):
+                        try:
+                            parsed_ids.extend([int(i) for i in json.loads(val)])
+                        except Exception:
+                            pass
+                    elif "," in val:
+                        parsed_ids.extend([int(i.strip()) for i in val.split(",") if i.strip().isdigit()])
+                    elif val.isdigit():
+                        parsed_ids.append(int(val))
+                elif isinstance(item, int):
+                    parsed_ids.append(item)
+            data["amenity_ids"] = parsed_ids
+
+        # Handle custom_amenities if passed as a string or list of strings
+        raw_custom = data.get("custom_amenities")
+        if isinstance(raw_custom, str):
+            val = raw_custom.strip()
+            if not val:
+                data["custom_amenities"] = []
+            elif val.startswith("["):
+                try:
+                    data["custom_amenities"] = [str(i) for i in json.loads(val)]
+                except (json.JSONDecodeError, ValueError):
                     pass
             elif "," in val:
                 data["custom_amenities"] = [i.strip() for i in val.split(",") if i.strip()]
-            elif val:
-                data["custom_amenities"] = [val]
+        elif isinstance(raw_custom, list):
+            parsed_custom = []
+            for item in raw_custom:
+                if isinstance(item, str):
+                    val = item.strip()
+                    if val.startswith("["):
+                        try:
+                            parsed_custom.extend([str(i) for i in json.loads(val)])
+                        except Exception:
+                            pass
+                    elif "," in val:
+                        parsed_custom.extend([i.strip() for i in val.split(",") if i.strip()])
+                    elif val:
+                        parsed_custom.append(val)
+                else:
+                    parsed_custom.append(str(item))
+            data["custom_amenities"] = parsed_custom
 
         return super().to_internal_value(data)
 

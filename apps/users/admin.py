@@ -5,8 +5,8 @@ from django.utils.html import format_html
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['id', 'email', 'phone_number', 'telegram_id', 'is_staff', 'is_active', 'is_superuser', 'is_verified', 'show_avatar']
-    search_fields = ['email', 'phone_number', 'telegram_id', 'telegram_username']
+    list_display = ['id', 'phone_number', 'username', 'telegram_id', 'is_staff', 'is_active', 'is_superuser', 'is_verified', 'show_avatar']
+    search_fields = ['phone_number', 'username', 'telegram_id', 'telegram_username']
 
     def show_avatar(self, obj):
         if obj.image:
@@ -18,7 +18,7 @@ class UserAdmin(admin.ModelAdmin):
 class DeviceAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'user', 'device_type', 'device_id', 'is_active', 'created_at']
     list_filter = ['device_type', 'is_active']
-    search_fields = ['name', 'device_id', 'user__email', 'user__phone_number']
+    search_fields = ['name', 'device_id', 'user__phone_number', 'user__username']
 
 
 @admin.register(TelegramLoginToken)

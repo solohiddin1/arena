@@ -1,6 +1,5 @@
 from django.urls import path
 
-from apps.users.services.google import GoogleCallback, GoogleLoginRedirect, GoogleMobileAuth
 from apps.users.api.views.apply_new_password import ApplyNewPassword
 from apps.users.api.views.check_register import CheckRegister
 from apps.users.api.views.login_user import LoginUser
@@ -52,8 +51,4 @@ urlpatterns = [
     path("otp-forgot-password/", OtpForgotPassword.as_view(), name="otp_forgot_password"),
     path("verify-forgot-password/", VerifyForgotPassword.as_view(), name="verify_forgot_password"),
     path("password-reset/", ApplyNewPassword.as_view(), name="password_reset"),
-    
-    # google auth
-    path('auth/google/login/', GoogleMobileAuth.as_view(), name='google_login'),
-    path('accounts/google/login/callback/', GoogleCallback.as_view(), name='google_callback'),
 ]

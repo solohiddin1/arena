@@ -10,7 +10,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--url",
             type=str,
-            help="Base domain or full webhook URL (e.g. https://api.yourdomain.com or https://api.yourdomain.com/api/v1/users/auth/telegram/webhook/)",
+            help="Base domain or full webhook URL (e.g. https://api.joyqidir.uz or https://api.joyqidir.uz/api/v1/user/auth/telegram/webhook/)",
         )
         parser.add_argument(
             "--delete",
@@ -52,10 +52,12 @@ class Command(BaseCommand):
             return
 
         base_url = options["url"].strip().rstrip("/")
-        if not base_url.endswith("/api/v1/users/auth/telegram/webhook"):
-            webhook_url = f"{base_url}/api/v1/users/auth/telegram/webhook/"
-        else:
+        if base_url.endswith("/api/v1/user/auth/telegram/webhook") or base_url.endswith("/api/v1/users/auth/telegram/webhook"):
             webhook_url = f"{base_url}/"
+        elif "/auth/telegram/webhook" in base_url:
+            webhook_url = f"{base_url}/"
+        else:
+            webhook_url = f"{base_url}/api/v1/user/auth/telegram/webhook/"
 
         self.stdout.write(f"Setting webhook to: {webhook_url}")
 

@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Set, get or delete Telegram Bot Webhook"
+    help = "Set, get or delete Telegram Bot Webhook!"
 
     def add_arguments(self, parser):
         parser.add_argument(

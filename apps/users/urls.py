@@ -11,6 +11,7 @@ from apps.users.api.views.user_update import UserUpdate
 from apps.users.api.views.update_profile_image import UserUpdateProfileImage
 from apps.users.api.views.verify_forgot_password import VerifyForgotPassword
 from apps.users.api.views.verify_otp import VerifyOtp
+from apps.users.api.views.set_password import SetPasswordView
 
 from apps.users.api.views.device_add import DeviceAddView
 from apps.users.api.views.device_delete import DeviceDeleteView
@@ -48,6 +49,7 @@ urlpatterns = [
     path('profile-update/', UserUpdate.as_view(), name='profile_update'),
 
     # password
+    path("set-password/", SetPasswordView.as_view(), name="set_password"),
     path("otp-forgot-password/", OtpForgotPassword.as_view(), name="otp_forgot_password"),
     path("verify-forgot-password/", VerifyForgotPassword.as_view(), name="verify_forgot_password"),
     path("password-reset/", ApplyNewPassword.as_view(), name="password_reset"),

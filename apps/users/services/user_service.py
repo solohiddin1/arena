@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.shared.enum import ResultCodes
 from apps.shared.send_email import send_email_from_server_from_brevo
-from apps.shared.utils import get_logger
+from apps.shared.utils import get_logger, error_response, success_response
 from apps.users.models import User
 from apps.users.repository import (
 	create_user_auth_otp_log,
@@ -112,6 +112,11 @@ class UserService:
 
 		token = RefreshToken.for_user(user)
 		return {"data": {"refresh": str(token), "access": str(token.access_token)}}
+
+	def set_user_password(self, user: User, password: str):
+		user.set_password(password)
+		user.save(update_fields=["password"])
+		return success_response({"message": "Password updated successfully"})
 
 	def request_forgot_password_otp(self, phone_number: str):
 		user = get_user_by_username(phone_number)

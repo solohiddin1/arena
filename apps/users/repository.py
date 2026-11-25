@@ -1,7 +1,8 @@
 import socket
 import random
 import datetime
-from django.db import transaction
+from django.db import transaction, models
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.shared.middleware.middleware import get_logger

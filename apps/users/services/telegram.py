@@ -304,8 +304,9 @@ class TgOtpService:
 
     @staticmethod
     def _no_token_msg():
-        url = getattr(settings, "TELEGRAM_LOGIN_RETURN_URL", "")
-        return NO_TOKEN_MSG_WITH_URL.format(url=url) if url else NO_TOKEN_MSG
+        # url = getattr(settings, "TELEGRAM_LOGIN_RETURN_URL", "")
+        # return NO_TOKEN_MSG_WITH_URL.format(url=url) if url else NO_TOKEN_MSG
+        return NO_TOKEN_MSG
 
     @staticmethod
     def _is_usable(row):

@@ -113,10 +113,10 @@ class AmenityInline(admin.TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(CustomAdmin):
-    list_display = ('id', 'title', 'ordering', 'image_preview')
+    list_display = ('id', 'title', 'ordering', 'image_preview', 'map_image_preview')
     list_editable = ('ordering',)
     search_fields = ('title', 'title_uz', 'title_ru', 'title_en')
-    readonly_fields = ('image_preview',)
+    readonly_fields = ('image_preview', 'map_image_preview')
     inlines = [AmenityInline]
 
     def image_preview(self, obj):
@@ -125,6 +125,13 @@ class CategoryAdmin(CustomAdmin):
         return "-"
 
     image_preview.short_description = 'Preview'
+
+    def map_image_preview(self, obj):
+        if obj.map_image:
+            return format_html('<img src="{}" width="70" height="70" style="object-fit:cover;border-radius:6px;" />', obj.map_image.url)
+        return "-"
+
+    map_image_preview.short_description = 'Map Image Preview'
 
 
 @admin.register(Amenity)

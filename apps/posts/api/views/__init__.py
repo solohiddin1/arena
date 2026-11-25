@@ -8,6 +8,7 @@ from .post import (
     PostDeleteView,
     PostDetailView,
     PostListView,
+    PostMapPlacesView,
     PostUpdateView,
 )
 from .favourite import FavouriteListView, FavouriteCreateView, FavouriteDeleteView

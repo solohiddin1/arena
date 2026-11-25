@@ -18,7 +18,16 @@ class AmenitySerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "title", "title_uz", "title_ru", "title_en", "image", "ordering")
+        fields = ("id", "title", "title_uz", "title_ru", "title_en", "image", "map_image", "ordering")
+
+
+class PostMapItemSerializer(serializers.ModelSerializer):
+    category_image = serializers.ImageField(source="category.image", read_only=True, allow_null=True)
+    category_map_image = serializers.ImageField(source="category.map_image", read_only=True, allow_null=True)
+
+    class Meta:
+        model = Post
+        fields = ("id", "lat", "long", "category", "category_image", "category_map_image")
 
 
 class PostWorkDaysSerializer(serializers.ModelSerializer):

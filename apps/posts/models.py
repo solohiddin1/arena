@@ -150,6 +150,7 @@ class PostCertificate(BaseModel):
 class Category(BaseModel):
     title = models.CharField(max_length=255, verbose_name="Category title", null=True)
     image = models.ImageField(upload_to='category_images/', blank=True, null=True)
+    map_image = models.ImageField(upload_to='category_map_images/', blank=True, null=True, verbose_name=_("Map image (preview)"))
     ordering = models.PositiveIntegerField(default=0, blank=True, null=True, db_index=True, verbose_name=_("Ordering"))
 
     class Meta:

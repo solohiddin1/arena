@@ -15,8 +15,9 @@ from apps.posts.api.serializers.post import (
     PostDetailSerializer,
     PostListSerializer,
     PostWriteSerializer,
+    PostMapItemSerializer,
 )
-from apps.posts.models import Favourite
+from apps.posts.models import Favourite, Post
 from apps.posts.services import PostService, GoogleMapsParserService
 from apps.shared.pagination import CustomPageNumberPagination
 from apps.shared.utils import SuccessResponse
@@ -510,4 +511,30 @@ class ImportGoogleMapsPlaceView(GenericAPIView):
         context = {"request": request}
         data = PostDetailSerializer(imported_posts, many=True, context=context).data
         return SuccessResponse(data)
+
+
+@extend_schema(
+    tags=["post"],
+    summary="Get all accepted places for map without pagination (post id, lat, long, category id)",
+    responses={200: PostMapItemSerializer(many=True)},
+)
+class PostMapPlacesView(GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = PostMapItemSerializer
+
+    def get(self, request, *args, **kwargs):
+        category_id = request.query_params.get("category_id") or request.query_params.get("category")
+        queryset = Post.objects.filter(
+            state="ACCEPTED",
+            is_hidden=False,
+            lat__isnull=False,
+            long__isnull=False,
+        ).select_related("category")
+
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+
+        serializer = self.get_serializer(queryset, many=True, context={"request": request})
+        return SuccessResponse(serializer.data)
+
 

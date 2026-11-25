@@ -18,11 +18,13 @@ from apps.posts.api.views import (
     PostFeedbackListView,
     PostFeedbackUpsertView,
     PostListView,
+    PostMapPlacesView,
     PostUpdateView,
 )
 
 urlpatterns = [
     path("list/", PostListView.as_view(), name="post_list"),
+    path("map-places/", PostMapPlacesView.as_view(), name="post_map_places"),
     path("my-posts/", MyPostListView.as_view(), name="my_post_list"),
     path("create/", PostCreateView.as_view(), name="post_create"),
     path("import-google-place/", ImportGoogleMapsPlaceView.as_view(), name="import_google_place"),
